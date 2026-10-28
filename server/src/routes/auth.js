@@ -4,6 +4,7 @@ const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
 const config = require('../config');
+const events = require('../event');
 const { HttpError, ah, str, roleOf } = require('../util');
 const { hashPassword, checkPassword, signToken, publicUser, requireAuth } = require('../auth');
 
@@ -72,6 +73,40 @@ router.post('/bootstrap', async (req, res, next) => {
     if (err && err.code === 'ER_DUP_ENTRY') {
       return next(new HttpError(409, 'Такой логин уже занят'));
     }
+    next(err);
+  }
+});
+
+/* --- самостоятельная регистрация участника --- */
+router.post('/register', async (req, res, next) => {
+  try {
+    checkRateLimit(req);
+
+    if (!(await events.isRegistrationOpen())) {
+      throw new HttpError(403, 'Регистрация закрыта. Обратитесь к организаторам.');
+    }
+
+    const username = str(req.body.username, { field: 'Логин', min: 3, max: 32 });
+    const password = str(req.body.password, { field: 'Пароль', min: 6, max: 72, trim: false });
+    const team = str(req.body.team, { field: 'Команда', max: 120, required: false });
+
+    const id = 'u' + crypto.randomBytes(5).toString('hex');
+    const qr = 'MF|PART|' + id;
+
+    try {
+      await db.query(
+        'INSERT INTO users (id, username, password_hash, role, team, qr, created_at) VALUES (?,?,?,?,?,?,?)',
+        [id, username, await hashPassword(password), 'participant', team, qr, Date.now()]
+      );
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'Такой логин уже занят. Выберите другой.');
+      throw err;
+    }
+
+    resetRateLimit(req);
+    const user = { id, username, role: 'participant', team, qr };
+    res.status(201).json({ user: publicUser(user), token: signToken(user) });
+  } catch (err) {
     next(err);
   }
 });

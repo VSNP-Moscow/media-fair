@@ -2,7 +2,8 @@
 
 const express = require('express');
 const db = require('../db');
-const { ah, intVal } = require('../util');
+const events = require('../event');
+const { ah, intVal, HttpError } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
 const { settingNumber } = require('./awards');
 
@@ -13,6 +14,10 @@ const router = express.Router();
  * поэтому повторные нажатия «Сохранить» не добавляют баллы.
  */
 router.post('/snake', requireAuth, requireRole('participant'), ah(async (req, res) => {
+  if (!(await events.isActive())) {
+    throw new HttpError(409, 'Мероприятие остановлено — игра недоступна.');
+  }
+
   const score = intVal(req.body.score, { field: 'Очки', min: 0, max: 5000, def: 0 });
   const perScore = await settingNumber('snake_points_per_score', 1);
   const task = await db.one("SELECT id FROM tasks WHERE type = 'game' ORDER BY created_at ASC LIMIT 1");

@@ -60,6 +60,11 @@
       }
 
       $('lastUpdate').textContent = new Date().toLocaleTimeString('ru-RU');
+
+      try {
+        const ev = await MF.getEventStatus();
+        $('autoRefresh').textContent = ev.active ? '● Мероприятие идёт' : '⏸ Мероприятие остановлено';
+      } catch (e) { /* статус не критичен для табло */ }
     } catch (err) {
       renderError(err.message);
     } finally {

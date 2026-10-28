@@ -10,6 +10,32 @@
   let scannedParticipant = null;
   let selectedTask = null;
   let scanner = null;
+  let eventActive = true;
+
+  /* ---------- состояние мероприятия ---------- */
+  function applyEventState(active) {
+    eventActive = !!active;
+
+    const banner = $('eventBanner');
+    if (banner) {
+      if (active) {
+        banner.style.display = 'none';
+      } else {
+        banner.innerHTML = '<b>Мероприятие остановлено.</b> Начисления закрыты до старта — участников можно находить, но баллы не начисляются.';
+        banner.style.display = 'block';
+      }
+    }
+
+    const submit = $('awardForm').querySelector('button[type="submit"]');
+    if (submit) submit.disabled = !active;
+  }
+
+  async function refreshEventState() {
+    try {
+      const ev = await MF.getEventStatus();
+      if (ev.active !== eventActive) applyEventState(ev.active);
+    } catch (e) { /* офлайн — не блокируем работу сканера */ }
+  }
 
   /* ---------- задания ---------- */
   function renderTasksSelect() {
@@ -97,6 +123,10 @@
     }
     if (!selectedTask) {
       MF.showAlert('awardAlert', 'Выберите задание.');
+      return;
+    }
+    if (!eventActive) {
+      MF.showAlert('awardAlert', 'Мероприятие остановлено — начисления закрыты.');
       return;
     }
 
@@ -199,12 +229,16 @@
       tasks = await MF.getTasks(true);
       renderTasksSelect();
       await refreshRecent();
+      await refreshEventState();
     } catch (err) {
       MF.showFatal(err.message);
       return;
     }
 
     startCameraScanner();
-    setInterval(() => { refreshRecent().catch(() => {}); }, 20000);
+    setInterval(() => {
+      refreshRecent().catch(() => {});
+      refreshEventState();
+    }, 20000);
   })();
 })();

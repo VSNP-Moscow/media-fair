@@ -70,4 +70,6 @@ CREATE TABLE IF NOT EXISTS settings (
 INSERT IGNORE INTO settings (k, v) VALUES
   ('quiz_points_per_correct', '10'),
   ('snake_points_per_score', '1'),
-  ('station_points', '50');
+  ('station_points', '50'),
+  ('event_active', '1'),
+  ('registration_open', '1');

@@ -9,6 +9,7 @@ const db = require('./db');
 const { HttpError } = require('./util');
 
 const authRoutes = require('./routes/auth');
+const eventRoutes = require('./routes/event');
 const userRoutes = require('./routes/users');
 const taskRoutes = require('./routes/tasks');
 const awardRoutes = require('./routes/awards');
@@ -67,6 +68,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/event', eventRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/awards', awardRoutes);

@@ -2,7 +2,8 @@
 
 const express = require('express');
 const db = require('../db');
-const { ah, intVal } = require('../util');
+const events = require('../event');
+const { ah, intVal, HttpError } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
 const { publicQuestions, scoreAnswers, QUIZ_QUESTIONS } = require('../data/quiz');
 const { settingNumber } = require('./awards');
@@ -18,6 +19,10 @@ router.get('/questions', requireAuth, (req, res) => {
  * Максимум за викторину = все вопросы * quiz_points_per_correct, накрутить нельзя.
  */
 router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, res) => {
+  if (!(await events.isActive())) {
+    throw new HttpError(409, 'Мероприятие остановлено — викторина недоступна.');
+  }
+
   const answers = Array.isArray(req.body.answers) ? req.body.answers : [];
   const { correct, total } = scoreAnswers(answers);
   const perCorrect = await settingNumber('quiz_points_per_correct', 10);

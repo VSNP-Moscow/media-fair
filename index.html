@@ -51,7 +51,26 @@
           <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required>
         </div>
         <button type="submit" id="loginBtn" class="btn btn-primary">Войти</button>
+        <button type="button" id="btnShowRegister" class="btn btn-secondary" style="display:none;margin-top:10px;">Регистрация участника</button>
+        <div id="registrationClosed" class="small" style="display:none;margin-top:10px;color:var(--text-muted);">Самостоятельная регистрация закрыта — логин выдаёт организатор.</div>
       </form>
+
+      <!-- Самостоятельная регистрация участника -->
+      <div id="registerForm" style="display:none; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:20px; margin-top:18px;">
+        <h3 style="font-size:1.1rem; margin-bottom:6px; color:var(--text);">🎫 Регистрация участника</h3>
+        <p class="small" style="margin-bottom:14px;">Придумайте логин и пароль. Команду можно указать любую — участники с одинаковым названием попадают в один зачёт.</p>
+        <div id="registerAlert" class="alert"></div>
+        <form id="createParticipantForm">
+          <div class="form-group"><label for="regUsername">Логин</label><input id="regUsername" type="text" minlength="3" maxlength="32" required autocomplete="username"></div>
+          <div class="form-group"><label for="regPassword">Пароль</label><input id="regPassword" type="password" minlength="6" maxlength="72" required autocomplete="new-password"></div>
+          <div class="form-group"><label for="regPassword2">Пароль ещё раз</label><input id="regPassword2" type="password" minlength="6" maxlength="72" required autocomplete="new-password"></div>
+          <div class="form-group"><label for="regTeam">Команда</label><input id="regTeam" type="text" maxlength="120" placeholder="например, Команда «Медиа»"></div>
+          <div class="actions" style="margin-top:14px;gap:10px;">
+            <button type="button" class="btn-sm" id="btnCancelRegister">Назад ко входу</button>
+            <button type="submit" class="btn btn-primary" style="width:auto;">Зарегистрироваться</button>
+          </div>
+        </form>
+      </div>
 
       <!-- Создание первого администратора: показывается только на пустой базе -->
       <div id="firstAdminForm" style="display:none; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:20px; margin-top:18px;">
@@ -67,9 +86,9 @@
     </div>
   </div>
 
-  <script src="config.js?v=6"></script>
-  <script src="api.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="api.js?v=7"></script>
+  <script src="app.js?v=7"></script>
   <script>
     (function () {
       const $ = (id) => document.getElementById(id);
@@ -83,6 +102,19 @@
       const loginSubtitle = $('loginSubtitle');
 
       let selectedRole = 'admin';
+      let registrationAvailable = false;
+
+      const showRegisterBtn = $('btnShowRegister');
+      const registerForm = $('registerForm');
+      const closedHint = $('registrationClosed');
+      const createParticipantForm = $('createParticipantForm');
+
+      function showRegisterAlert(message, type) {
+        const el = $('registerAlert');
+        el.textContent = message;
+        el.className = 'alert ' + (type === 'ok' ? 'ok' : '');
+        el.style.display = 'block';
+      }
 
       function showError(message, type) {
         alertEl.textContent = message;
@@ -100,8 +132,51 @@
         });
       });
 
-      createAdminForm.addEventListener('submit', async (e) => {
+      showRegisterBtn.addEventListener('click', () => {
+        form.style.display = 'none';
+        showRegisterBtn.style.display = 'none';
+        closedHint.style.display = 'none';
+        registerForm.style.display = 'block';
+        $('registerAlert').style.display = 'none';
+        $('regUsername').focus();
+      });
+
+      $('btnCancelRegister').addEventListener('click', () => {
+        registerForm.style.display = 'none';
+        form.style.display = 'block';
+        showRegisterBtn.style.display = registrationAvailable ? 'block' : 'none';
+        closedHint.style.display = registrationAvailable ? 'none' : 'block';
+      });
+
+      createParticipantForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const first = $('regPassword').value;
+        const second = $('regPassword2').value;
+        if (first !== second) {
+          showRegisterAlert('Пароли не совпадают. Проверьте ввод.');
+          return;
+        }
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Регистрация...';
+
+        try {
+          const user = await window.__MF.register({
+            username: $('regUsername').value.trim(),
+            password: first,
+            team: $('regTeam').value.trim(),
+          });
+          showRegisterAlert('Готово! Открываю кабинет участника...', 'ok');
+          window.location.href = window.__MF.ROLE_PAGES[user.role] || 'participant.html';
+        } catch (err) {
+          showRegisterAlert(err.message);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Зарегистрироваться';
+        }
+      });
+
+      createAdminForm.addEventListener('submit', async (e) => {        e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Создание...';
@@ -157,6 +232,17 @@
           if (status.needsAdmin) {
             firstAdminForm.style.display = 'block';
             loginSubtitle.textContent = 'Первый запуск — создайте администратора.';
+            return;
+          }
+
+          // Регистрация доступна, только если её открыл администратор.
+          try {
+            const ev = await window.__MF.getEventStatus();
+            registrationAvailable = ev.registrationOpen;
+            showRegisterBtn.style.display = registrationAvailable ? 'block' : 'none';
+            closedHint.style.display = registrationAvailable ? 'none' : 'block';
+          } catch (e) {
+            showRegisterBtn.style.display = 'none';
           }
         } catch (err) {
           showError('Сервер недоступен: ' + err.message);

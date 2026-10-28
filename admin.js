@@ -15,6 +15,36 @@
   let editingUserId = null;
   let editingTaskId = null;
 
+  /* ---------- мероприятие ---------- */
+  let eventState = { active: true, registrationOpen: true };
+
+  async function loadEvent() {
+    eventState = await MF.getEventStatus();
+    renderEvent();
+  }
+
+  function renderEvent() {
+    const badge = $('eventBadge');
+    const btn = $('btnToggleEvent');
+    const hint = $('eventHint');
+
+    $('chkRegistration').checked = !!eventState.registrationOpen;
+
+    if (eventState.active) {
+      badge.textContent = '● Мероприятие идёт';
+      badge.style.cssText = 'background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;';
+      btn.textContent = '⏹ Остановить мероприятие';
+      btn.style.cssText = 'width:auto;background:var(--danger);border-color:transparent;color:#fff;';
+      hint.textContent = 'У участников доступны QR-код, карта, викторина и змейка. Волонтёры могут начислять баллы.';
+    } else {
+      badge.textContent = '⏸ Остановлено';
+      badge.style.cssText = 'background:#fef2f2;color:#dc2626;border-color:#fecaca;';
+      btn.textContent = '▶ Начать мероприятие';
+      btn.style.cssText = 'width:auto;';
+      hint.textContent = 'У участников скрыто управление, волонтёры не могут начислять баллы. Очки и история сохраняются.';
+    }
+  }
+
   /* ---------- пользователи ---------- */
   async function loadUsers() {
     users = await MF.getUsers();
@@ -173,10 +203,48 @@
 
     $('btnRefresh').addEventListener('click', async () => {
       try {
-        await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard()]);
+        await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard(), loadEvent()]);
         MF.showAlert('settingsAlert', 'Данные обновлены.', 'ok');
       } catch (err) {
         MF.showAlert('settingsAlert', err.message);
+      }
+    });
+
+    /* мероприятие */
+    $('btnToggleEvent').addEventListener('click', async () => {
+      const btn = $('btnToggleEvent');
+      const next = !eventState.active;
+
+      if (!next && !window.confirm('Остановить мероприятие? У участников скроется управление, волонтёры не смогут начислять баллы.')) {
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        const res = await MF.setEvent({ active: next });
+        eventState.active = res.active;
+        renderEvent();
+        MF.showAlert('eventAlert', next ? 'Мероприятие начато.' : 'Мероприятие остановлено.', 'ok');
+        setTimeout(() => MF.hideAlert('eventAlert'), 4000);
+      } catch (err) {
+        MF.showAlert('eventAlert', err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    $('chkRegistration').addEventListener('change', async () => {
+      const box = $('chkRegistration');
+      box.disabled = true;
+      try {
+        const res = await MF.setEvent({ registrationOpen: box.checked });
+        eventState.registrationOpen = res.registrationOpen;
+        box.checked = res.registrationOpen;
+      } catch (err) {
+        box.checked = !box.checked;
+        MF.showAlert('eventAlert', err.message);
+      } finally {
+        box.disabled = false;
       }
     });
 
@@ -327,7 +395,7 @@
 
     bindEvents();
     try {
-      await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard()]);
+      await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard(), loadEvent()]);
     } catch (err) {
       MF.showFatal(err.message);
     }

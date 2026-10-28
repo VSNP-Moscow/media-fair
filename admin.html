@@ -31,6 +31,25 @@
     </div>
 
     <div class="grid grid-2">
+      <!-- Мероприятие -->
+      <div class="card accent-admin" style="grid-column:1 / -1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:6px;">🎪 Мероприятие</h3>
+            <div class="small" id="eventHint">Проверяем состояние…</div>
+          </div>
+          <span class="badge" id="eventBadge">…</span>
+        </div>
+        <div class="actions" style="margin-top:14px;align-items:center;gap:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btnToggleEvent" style="width:auto;">⏹ Остановить мероприятие</button>
+          <label class="small" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+            <input type="checkbox" id="chkRegistration" style="width:auto;accent-color:var(--admin);">
+            Регистрация участников открыта
+          </label>
+        </div>
+        <div id="eventAlert" class="alert" style="margin-top:12px;"></div>
+      </div>
+
       <!-- Пользователи -->
       <div class="card accent-admin">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -152,9 +171,9 @@
     </div>
   </div>
 
-  <script src="config.js?v=6"></script>
-  <script src="api.js?v=6"></script>
-  <script src="app.js?v=6"></script>
-  <script src="admin.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="api.js?v=7"></script>
+  <script src="app.js?v=7"></script>
+  <script src="admin.js?v=7"></script>
 </body>
 </html>

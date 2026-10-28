@@ -31,9 +31,11 @@
       </div>
     </div>
 
+    <div id="eventBanner" class="alert" style="display:none;margin-bottom:18px;"></div>
+
     <div class="grid grid-2">
       <!-- QR -->
-      <div class="card accent-participant">
+      <div class="card accent-participant" id="qrCard">
         <h3>📇 Твой QR-код</h3>
         <div class="qr-wrap">
           <div class="qr-canvas" id="qrContainer"></div>
@@ -62,7 +64,7 @@
     </div>
 
     <!-- Карта -->
-    <div class="card accent-participant" style="grid-column:1 / -1;">
+    <div class="card accent-participant" id="mapCard" style="grid-column:1 / -1;">
       <h3>🗺️ Карта заданий</h3>
       <p class="small" style="margin-bottom:12px;">Нажми на метку — посмотри задание. Станции отмечай у волонтёра, квисты и змейку проходи ниже.</p>
       <div id="map"></div>
@@ -73,7 +75,7 @@
     </div>
 
     <!-- Викторина -->
-    <div class="card accent-participant" style="grid-column:1 / -1;">
+    <div class="card accent-participant" id="quizCard" style="grid-column:1 / -1;">
       <h3>🧠 Мини-викторина</h3>
       <p class="small" style="margin-bottom:14px;">Очки начисляются за лучший результат: каждая новая верная серия ответов добавляет баллы. Накрутить повторами нельзя.</p>
       <div id="quizContainer"></div>
@@ -84,7 +86,7 @@
     </div>
 
     <!-- Змейка -->
-    <div class="card accent-participant" style="grid-column:1 / -1;">
+    <div class="card accent-participant" id="snakeCard" style="grid-column:1 / -1;">
       <h3>🐍 Игра «Змейка»</h3>
       <p class="small" style="margin-bottom:12px;">Управляй змейкой, ешь еду. Очки начисляются за улучшение личного рекорда. Лучший результат сохраняется в базе.</p>
       <div class="snake-wrap">
@@ -111,12 +113,12 @@
     </div>
   </div>
 
-  <script src="config.js?v=6"></script>
-  <script src="api.js?v=6"></script>
-  <script src="app.js?v=6"></script>
+  <script src="config.js?v=7"></script>
+  <script src="api.js?v=7"></script>
+  <script src="app.js?v=7"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="qrcode.min.js?v=2"></script>
   <script src="snake.js?v=7"></script>
-  <script src="participant.js?v=6"></script>
+  <script src="participant.js?v=7"></script>
 </body>
 </html>

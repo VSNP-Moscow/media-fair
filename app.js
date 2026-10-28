@@ -172,6 +172,27 @@ async function bootstrapAdmin(payload) {
   return data.user;
 }
 
+/* ---------- регистрация участника ---------- */
+async function register(payload) {
+  var data = await window.MF_API.request('/auth/register', {
+    method: 'POST',
+    body: payload,
+    auth: false,
+  });
+  window.MF_API.setToken(data.token);
+  __mfState.user = data.user;
+  return data.user;
+}
+
+/* ---------- состояние мероприятия ---------- */
+async function getEventStatus() {
+  return window.MF_API.request('/event', { auth: false });
+}
+
+async function setEvent(payload) {
+  return window.MF_API.request('/event', { method: 'PUT', body: payload });
+}
+
 /* ---------- пользователи (админ) ---------- */
 async function getUsers() {
   return (await window.MF_API.request('/users')).users;
@@ -274,6 +295,10 @@ window.__MF = {
 
   bootstrapStatus: bootstrapStatus,
   bootstrapAdmin: bootstrapAdmin,
+  register: register,
+
+  getEventStatus: getEventStatus,
+  setEvent: setEvent,
 
   getUsers: getUsers,
   addUser: addUser,

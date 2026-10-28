@@ -2,13 +2,13 @@
 
 const express = require('express');
 const db = require('../db');
+const events = require('../event');
 const { HttpError, ah, str, intVal, idOf } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
 
 const router = express.Router();
 
-async function settingNumber(key, fallback) {
-  const row = await db.one('SELECT v FROM settings WHERE k = ?', [key]);
+async function settingNumber(key, fallback) {  const row = await db.one('SELECT v FROM settings WHERE k = ?', [key]);
   const n = Number(row ? row.v : fallback);
   return Number.isFinite(n) ? n : fallback;
 }
@@ -23,6 +23,12 @@ async function totalFor(userId, conn = db) {
 
 /* ---------- начисление (волонтёр, админ) ---------- */
 router.post('/', requireAuth, requireRole('volunteer', 'admin'), ah(async (req, res) => {
+  // Во время остановки начисления закрыты для волонтёров;
+  // администратор может исправить очки вручную в любой момент.
+  if (req.user.role !== 'admin' && !(await events.isActive())) {
+    throw new HttpError(409, 'Мероприятие остановлено — начисления недоступны.');
+  }
+
   const userId = idOf(req.body.userId, 'Участник');
   const taskId = req.body.taskId ? idOf(req.body.taskId, 'Задание') : '';
   const note = str(req.body.note, { field: 'Комментарий', max: 255, required: false });

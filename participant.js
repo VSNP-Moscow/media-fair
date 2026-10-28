@@ -11,6 +11,39 @@
   let quizQuestions = [];
   let pointsTimer = null;
   let refreshing = false;
+  let mapInstance = null;
+  let eventActive = true;
+
+  /* ---------- состояние мероприятия ---------- */
+  function applyEventState(active) {
+    eventActive = !!active;
+
+    ['qrCard', 'mapCard', 'quizCard', 'snakeCard'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = active ? '' : 'none';
+    });
+
+    const banner = $('eventBanner');
+    if (banner) {
+      if (active) {
+        banner.style.display = 'none';
+      } else {
+        banner.innerHTML = '<b>Мероприятие сейчас не идёт.</b> Управление скрыто организаторами — очки и история остаются доступны.';
+        banner.style.display = 'block';
+      }
+    }
+
+    if (active && mapInstance) {
+      setTimeout(() => { try { mapInstance.invalidateSize(); } catch (e) { /* карта скрыта */ } }, 60);
+    }
+  }
+
+  async function refreshEventState() {
+    try {
+      const ev = await MF.getEventStatus();
+      if (ev.active !== eventActive) applyEventState(ev.active);
+    } catch (e) { /* сеть недоступна — оставляем как есть */ }
+  }
 
   /* ---------- очки ---------- */
   async function loadPoints() {
@@ -74,6 +107,7 @@
     let map;
     try {
       map = L.map('map').setView([55.7538, 37.6218], 15);
+      mapInstance = map;
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap',
         maxZoom: 19,
@@ -206,6 +240,7 @@
 
     try {
       await loadPoints();
+      await refreshEventState();
       tasks = await MF.getTasks(true);
       renderTaskList();
       initMap();
@@ -216,7 +251,10 @@
       return;
     }
 
-    pointsTimer = setInterval(() => { loadPoints().catch(() => {}); }, 15000);
+    pointsTimer = setInterval(() => {
+      loadPoints().catch(() => {});
+      refreshEventState();
+    }, 15000);
     window.addEventListener('beforeunload', () => clearInterval(pointsTimer));
   })();
 })();
