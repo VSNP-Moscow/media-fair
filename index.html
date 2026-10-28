@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — вход</title>
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
   <div class="login-page">
@@ -75,7 +75,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
   <script>
     (function(){
       const form = document.getElementById('loginForm');
@@ -95,15 +95,17 @@
           document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           selectedRole = card.dataset.role;
+          loginSubtitle.textContent = 'Вход как ' + (window.__MF.ROLE_LABELS[selectedRole] || selectedRole).toLowerCase() + ': введите логин и пароль.';
+          usernameInput.focus();
         });
       });
 
-      // Если пользователей нет — показываем форму создания первого администратора
+      // Форма входа всегда доступна; на первом запуске дополнительно показываем форму создания администратора
+      form.style.display = 'block';
       if (!window.__MF.hasUsers()) {
         firstAdminForm.style.display = 'block';
-        loginSubtitle.textContent = 'Первый запуск — создайте администратора.';
+        loginSubtitle.textContent = 'Первый запуск — создайте администратора, затем войдите.';
       } else {
-        form.style.display = 'block';
         loginSubtitle.textContent = 'Войдите под своей ролью: администратор, участник или волонтёр.';
       }
 
