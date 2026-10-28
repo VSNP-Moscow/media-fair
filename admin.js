@@ -12,8 +12,11 @@
 
   let users = [];
   let tasks = [];
+  let surveyQuestions = [];
+  let surveyTotals = { totalParticipants: 0, responses: 0 };
   let editingUserId = null;
   let editingTaskId = null;
+  let editingQuestionId = null;
 
   /* ---------- мероприятие ---------- */
   let eventState = { active: true, registrationOpen: true };
@@ -35,7 +38,7 @@
       badge.style.cssText = 'background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;';
       btn.textContent = '⏹ Остановить мероприятие';
       btn.style.cssText = 'width:auto;background:var(--danger);border-color:transparent;color:#fff;';
-      hint.textContent = 'У участников доступны QR-код, карта, викторина и змейка. Волонтёры могут начислять баллы.';
+      hint.textContent = 'У участников доступны QR-код, змейка и опросник. Волонтёры могут начислять баллы.';
     } else {
       badge.textContent = '⏸ Остановлено';
       badge.style.cssText = 'background:#fef2f2;color:#dc2626;border-color:#fecaca;';
@@ -43,6 +46,68 @@
       btn.style.cssText = 'width:auto;';
       hint.textContent = 'У участников скрыто управление, волонтёры не могут начислять баллы. Очки и история сохраняются.';
     }
+  }
+
+  /* ---------- опросник ---------- */
+  async function loadSurvey() {
+    const results = await MF.getSurveyResults();
+    surveyQuestions = results.questions || [];
+    surveyTotals = { totalParticipants: results.totalParticipants, responses: results.responses };
+    renderSurvey();
+  }
+
+  function renderSurvey() {
+    const box = $('surveyQuestions');
+    const summary = $('surveySummary');
+    const total = surveyTotals.totalParticipants || 0;
+    const answered = surveyTotals.responses || 0;
+
+    summary.textContent = 'Вопросов: ' + surveyQuestions.length + ' · Ответили: ' + answered + ' из ' + total + ' участников';
+
+    if (surveyQuestions.length === 0) {
+      box.innerHTML = '<div class="empty" style="padding:20px;">Вопросов пока нет. Нажмите «+ Добавить вопрос» — он сразу появится у участников, когда мероприятие идёт.</div>';
+      return;
+    }
+
+    box.innerHTML = surveyQuestions.map((question, index) => {
+      const options = question.options.map((option, optionIndex) => {
+        const count = question.counts[optionIndex] || 0;
+        const percent = answered > 0 ? Math.round((count / answered) * 100) : 0;
+        return '<div class="survey-option"><span>' + esc(option) + '</span><b>' + count + ' · ' + percent + '%</b></div>';
+      }).join('');
+
+      return '<div class="survey-q">' +
+        '<div class="survey-q-head">' +
+          '<div><b>' + (index + 1) + '. ' + esc(question.text) + '</b>' +
+          '<div class="small" style="margin-top:4px;">Ответили: ' + question.answered + ' из ' + answered + '</div></div>' +
+          '<div class="actions" style="margin-top:0;">' +
+            '<button class="btn-sm" data-action="edit" data-id="' + esc(question.id) + '">Ред.</button>' +
+            '<button class="btn-sm danger" data-action="delete" data-id="' + esc(question.id) + '">Удалить</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="survey-options">' + options + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function openSurveyModal(question) {
+    editingQuestionId = question ? question.id : null;
+    $('surveyModalTitle').textContent = question ? 'Изменить вопрос' : 'Новый вопрос';
+    $('surveyForm').reset();
+    MF.hideAlert('surveyModalAlert');
+
+    if (question) {
+      $('sqText').value = question.text;
+      $('sqOptions').value = question.options.join('\n');
+    }
+
+    $('surveyModal').classList.add('open');
+    $('sqText').focus();
+  }
+
+  function closeSurveyModal() {
+    $('surveyModal').classList.remove('open');
+    editingQuestionId = null;
   }
 
   /* ---------- пользователи ---------- */
@@ -203,7 +268,7 @@
 
     $('btnRefresh').addEventListener('click', async () => {
       try {
-        await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard(), loadEvent()]);
+        await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard(), loadEvent(), loadSurvey()]);
         MF.showAlert('settingsAlert', 'Данные обновлены.', 'ok');
       } catch (err) {
         MF.showAlert('settingsAlert', err.message);
@@ -245,6 +310,96 @@
         MF.showAlert('eventAlert', err.message);
       } finally {
         box.disabled = false;
+      }
+    });
+
+    /* опросник */
+    $('btnAddQuestion').addEventListener('click', () => openSurveyModal(null));
+    $('closeSurveyModal').addEventListener('click', closeSurveyModal);
+    $('btnCancelSurvey').addEventListener('click', closeSurveyModal);
+    $('surveyModal').addEventListener('click', (e) => {
+      if (e.target === $('surveyModal')) closeSurveyModal();
+    });
+
+    $('surveyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const text = $('sqText').value.trim();
+      const options = $('sqOptions').value.split('\n').map((line) => line.trim()).filter(Boolean);
+
+      if (text.length < 3) {
+        MF.showAlert('surveyModalAlert', 'Вопрос: минимум 3 символа.');
+        return;
+      }
+      if (options.length < 2 || options.length > 8) {
+        MF.showAlert('surveyModalAlert', 'Нужно от 2 до 8 вариантов ответа — по одному в строке.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      const wasEditing = !!editingQuestionId;
+      try {
+        if (editingQuestionId) {
+          await MF.updateSurveyQuestion(editingQuestionId, { text: text, options: options });
+        } else {
+          await MF.addSurveyQuestion({ text: text, options: options });
+        }
+        closeSurveyModal();
+        await loadSurvey();
+        MF.showAlert('surveyAlert', wasEditing ? 'Вопрос обновлён.' : 'Вопрос добавлен.', 'ok');
+        setTimeout(() => MF.hideAlert('surveyAlert'), 4000);
+      } catch (err) {
+        MF.showAlert('surveyModalAlert', err.message);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    $('surveyQuestions').addEventListener('click', async (e) => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const question = surveyQuestions.find((q) => q.id === btn.dataset.id);
+      if (!question) return;
+
+      if (btn.dataset.action === 'edit') {
+        openSurveyModal(question);
+        return;
+      }
+
+      if (btn.dataset.action === 'delete') {
+        if (!window.confirm('Удалить вопрос «' + question.text + '»? Ответы на него перестанут учитываться.')) return;
+        btn.disabled = true;
+        try {
+          await MF.deleteSurveyQuestion(question.id);
+          await loadSurvey();
+        } catch (err) {
+          window.alert(err.message);
+          btn.disabled = false;
+        }
+      }
+    });
+
+    /* выгрузка пользователей в Excel */
+    $('btnExportUsers').addEventListener('click', async () => {
+      const btn = $('btnExportUsers');
+      const label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Готовлю файл…';
+      try {
+        const blob = await MF.exportUsers();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'media-fair-users-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+      } catch (err) {
+        window.alert('Не удалось выгрузить файл: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = label;
       }
     });
 
@@ -398,6 +553,11 @@
       await Promise.all([loadUsers(), loadTasks(), loadSettings(), loadLeaderboard(), loadEvent()]);
     } catch (err) {
       MF.showFatal(err.message);
+      return;
     }
+
+    loadSurvey().catch((err) => {
+      $('surveySummary').textContent = 'Не удалось загрузить опросник: ' + err.message;
+    });
   })();
 })();

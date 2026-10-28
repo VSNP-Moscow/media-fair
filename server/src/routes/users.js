@@ -3,8 +3,9 @@
 const express = require('express');
 const crypto = require('crypto');
 const db = require('../db');
-const { HttpError, ah, str, roleOf, idOf } = require('../util');
+const { HttpError, ah, str, roleOf, idOf, ROLE_LABELS } = require('../util');
 const { hashPassword, requireAuth, requireRole } = require('../auth');
+const { buildXlsx } = require('../xlsx');
 
 const router = express.Router();
 
@@ -38,6 +39,45 @@ router.get('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
       createdAt: Number(u.created_at),
     })),
   });
+}));
+
+/** Выгрузка списка пользователей в Excel (.xlsx). */
+router.get('/export.xlsx', requireAuth, requireRole('admin'), ah(async (req, res) => {
+  const rows = await db.query(listSql());
+
+  const dateFormat = new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow',
+  });
+
+  const data = [
+    ['Логин', 'Роль', 'Команда', 'QR-код', 'Очки', 'Дата регистрации'],
+  ];
+
+  rows.forEach((user) => {
+    data.push([
+      user.username,
+      ROLE_LABELS[user.role] || user.role,
+      user.team || '',
+      user.qr || '',
+      Number(user.total_points),
+      dateFormat.format(new Date(Number(user.created_at))),
+    ]);
+  });
+
+  const buffer = buildXlsx({
+    sheetName: 'Пользователи',
+    columns: [24, 16, 28, 24, 10, 20],
+    rows: data,
+  });
+
+  const stamp = new Date().toISOString().slice(0, 10);
+  const filename = 'media-fair-users-' + stamp + '.xlsx';
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(buffer);
 }));
 
 router.post('/', requireAuth, requireRole('admin'), ah(async (req, res) => {

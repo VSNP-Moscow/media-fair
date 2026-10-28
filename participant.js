@@ -5,11 +5,14 @@
 
   const $ = (id) => document.getElementById(id);
   const MF = window.__MF;
+  const esc = MF.escapeHtml;
 
   let user = null;
   let pointsTimer = null;
   let refreshing = false;
   let eventActive = true;
+  let surveyQuestions = [];
+  let surveySubmitted = false;
 
   /* ---------- состояние мероприятия ---------- */
   function applyEventState(active) {
@@ -29,13 +32,107 @@
         banner.style.display = 'block';
       }
     }
+
+    renderSurvey();
   }
 
   async function refreshEventState() {
     try {
       const ev = await MF.getEventStatus();
-      if (ev.active !== eventActive) applyEventState(ev.active);
+      if (ev.active !== eventActive) {
+        applyEventState(ev.active);
+        if (ev.active) await loadSurvey();
+      }
     } catch (e) { /* сеть недоступна — оставляем как есть */ }
+  }
+
+  /* ---------- опросник ---------- */
+  async function loadSurvey() {
+    const data = await MF.getSurvey();
+    surveyQuestions = data.questions || [];
+    surveySubmitted = !!data.submitted;
+    renderSurvey();
+  }
+
+  function renderSurvey() {
+    const card = $('surveyCard');
+    if (!card) return;
+
+    if (!eventActive || surveyQuestions.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+
+    card.style.display = '';
+
+    const form = $('surveyForm');
+    const fields = $('surveyFields');
+    const result = $('surveyResult');
+    const intro = $('surveyIntro');
+
+    if (surveySubmitted) {
+      form.style.display = 'none';
+      result.innerHTML = '<div class="survey-thanks">✅ Спасибо! Ваши ответы отправлены организаторам.</div>';
+      intro.textContent = 'Вы уже ответили на вопросы опросника.';
+      return;
+    }
+
+    form.style.display = '';
+    result.innerHTML = '';
+    intro.textContent = 'Ответьте на несколько вопросов — это поможет организаторам.';
+
+    fields.innerHTML = surveyQuestions.map((question, index) => {
+      const choices = question.options.map((option, optionIndex) =>
+        '<label class="survey-choice">' +
+          '<input type="radio" name="sq_' + esc(question.id) + '" value="' + optionIndex + '">' +
+          '<span>' + esc(option) + '</span>' +
+        '</label>'
+      ).join('');
+
+      return '<fieldset class="survey-field">' +
+        '<legend>' + (index + 1) + '. ' + esc(question.text) + '</legend>' +
+        choices +
+      '</fieldset>';
+    }).join('');
+  }
+
+  function initSurvey() {
+    $('surveyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (!eventActive) {
+        MF.showAlert('surveyAlert', 'Мероприятие остановлено — опросник недоступен.');
+        return;
+      }
+
+      const answers = [];
+      for (let i = 0; i < surveyQuestions.length; i += 1) {
+        const checked = document.querySelector('input[name="sq_' + surveyQuestions[i].id + '"]:checked');
+        if (!checked) {
+          MF.showAlert('surveyAlert', 'Ответьте на все вопросы — остался вопрос ' + (i + 1) + '.');
+          return;
+        }
+        answers.push(Number(checked.value));
+      }
+
+      const btn = $('btnSurveySubmit');
+      btn.disabled = true;
+      try {
+        await MF.submitSurvey(answers);
+        surveySubmitted = true;
+        MF.hideAlert('surveyAlert');
+        renderSurvey();
+      } catch (err) {
+        if (err.status === 409) {
+          surveySubmitted = true;
+          renderSurvey();
+        } else {
+          MF.showAlert('surveyAlert', err.message);
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
   }
 
   /* ---------- очки ---------- */
@@ -64,7 +161,7 @@
     entries.forEach((entry) => {
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + MF.escapeHtml(entry.note) + '</td>' +
+        '<td>' + esc(entry.note) + '</td>' +
         '<td style="text-align:right;color:var(--dashboard);font-weight:700">+' + MF.fmtPoints(entry.points) + '</td>' +
         '<td class="small">' + MF.fmtDate(entry.awardedAt) + '</td>';
       tbody.appendChild(tr);
@@ -120,15 +217,21 @@
     try {
       await loadPoints();
       await refreshEventState();
-      initSnake();
     } catch (err) {
       MF.showFatal(err.message);
       return;
     }
 
+    initSurvey();
+    initSnake();
+
+    try {
+      await loadSurvey();
+    } catch (e) { /* опросник не критичен для страницы */ }
+
     pointsTimer = setInterval(() => {
       loadPoints().catch(() => {});
-      refreshEventState();
+      refreshEventState().catch(() => {});
     }, 15000);
     window.addEventListener('beforeunload', () => clearInterval(pointsTimer));
   })();

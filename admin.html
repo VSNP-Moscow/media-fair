@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Администратор</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header class="topbar">
@@ -50,11 +50,27 @@
         <div id="eventAlert" class="alert" style="margin-top:12px;"></div>
       </div>
 
+      <!-- Опросник -->
+      <div class="card accent-admin" style="grid-column:1 / -1;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin-bottom:4px;">📝 Опросник</h3>
+            <div class="small" id="surveySummary">Загружаем вопросы…</div>
+          </div>
+          <button class="btn-sm primary" id="btnAddQuestion">+ Добавить вопрос</button>
+        </div>
+        <div id="surveyAlert" class="alert" style="margin-top:12px;"></div>
+        <div id="surveyQuestions" class="survey-list"></div>
+      </div>
+
       <!-- Пользователи -->
       <div class="card accent-admin">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;">
           <h3>👥 Пользователи</h3>
-          <button class="btn-sm primary" id="btnOpenAddUser">+ Добавить</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-sm" id="btnExportUsers">⬇ Excel</button>
+            <button class="btn-sm primary" id="btnOpenAddUser">+ Добавить</button>
+          </div>
         </div>
         <div class="table-wrap">
           <table>
@@ -169,11 +185,34 @@
         </form>
       </div>
     </div>
+    <!-- Модалка вопроса опросника -->
+    <div class="modal-overlay" id="surveyModal">
+      <div class="modal">
+        <div class="close" id="closeSurveyModal">✕</div>
+        <h3 id="surveyModalTitle">Новый вопрос</h3>
+        <div id="surveyModalAlert" class="alert"></div>
+        <form id="surveyForm">
+          <div class="form-group">
+            <label for="sqText">Вопрос</label>
+            <textarea id="sqText" rows="2" maxlength="500" placeholder="например, Насколько тебе понравилась ярмарка?" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="sqOptions">Варианты ответа — по одному в строке</label>
+            <textarea id="sqOptions" rows="6" maxlength="1700" placeholder="Отлично&#10;Хорошо&#10;Можно лучше" required></textarea>
+            <div class="small" style="margin-top:6px;">От 2 до 8 вариантов. Участник выбирает один.</div>
+          </div>
+          <div class="actions" style="margin-top:14px;">
+            <button type="button" class="btn-sm" id="btnCancelSurvey">Отмена</button>
+            <button type="submit" class="btn-sm primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
-  <script src="config.js?v=7"></script>
-  <script src="api.js?v=7"></script>
-  <script src="app.js?v=7"></script>
-  <script src="admin.js?v=7"></script>
+  <script src="config.js?v=9"></script>
+  <script src="api.js?v=9"></script>
+  <script src="app.js?v=9"></script>
+  <script src="admin.js?v=9"></script>
 </body>
 </html>

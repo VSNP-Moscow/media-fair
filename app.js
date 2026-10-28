@@ -273,6 +273,36 @@ async function saveSnakeScore(score) {
   return window.MF_API.request('/game/snake', { method: 'POST', body: { score: score } });
 }
 
+/* ---------- опросник ---------- */
+async function getSurvey() {
+  return window.MF_API.request('/survey');
+}
+
+async function submitSurvey(answers) {
+  return window.MF_API.request('/survey/submit', { method: 'POST', body: { answers: answers } });
+}
+
+async function getSurveyResults() {
+  return window.MF_API.request('/survey/results');
+}
+
+async function addSurveyQuestion(payload) {
+  return (await window.MF_API.request('/survey/questions', { method: 'POST', body: payload })).question;
+}
+
+async function updateSurveyQuestion(id, payload) {
+  return (await window.MF_API.request('/survey/questions/' + encodeURIComponent(id), { method: 'PATCH', body: payload })).question;
+}
+
+async function deleteSurveyQuestion(id) {
+  await window.MF_API.request('/survey/questions/' + encodeURIComponent(id), { method: 'DELETE' });
+}
+
+/* ---------- выгрузка ---------- */
+async function exportUsers() {
+  return window.MF_API.requestBlob('/users/export.xlsx');
+}
+
 /* ---------- настройки ---------- */
 async function getSettings() {
   return (await window.MF_API.request('/settings')).settings;
@@ -320,6 +350,15 @@ window.__MF = {
   getQuiz: getQuiz,
   submitQuiz: submitQuiz,
   saveSnakeScore: saveSnakeScore,
+
+  getSurvey: getSurvey,
+  submitSurvey: submitSurvey,
+  getSurveyResults: getSurveyResults,
+  addSurveyQuestion: addSurveyQuestion,
+  updateSurveyQuestion: updateSurveyQuestion,
+  deleteSurveyQuestion: deleteSurveyQuestion,
+
+  exportUsers: exportUsers,
 
   getSettings: getSettings,
   saveSettings: saveSettings,

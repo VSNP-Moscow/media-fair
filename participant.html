@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Участник</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <header class="topbar">
@@ -26,7 +26,7 @@
     <div class="page-header">
       <div>
         <h2><span class="mark-inline">🎫</span>Твоё место на ярмарке</h2>
-        <div class="subtitle">Покажи QR-код волонтёру на станции и играй в змейку, чтобы заработать очки.</div>
+        <div class="subtitle">Покажи QR-код волонтёру на станции, играй в змейку и отвечай на вопросы опросника.</div>
       </div>
     </div>
 
@@ -62,6 +62,20 @@
       </div>
     </div>
 
+    <!-- Опросник -->
+    <div class="card accent-participant" id="surveyCard" style="grid-column:1 / -1;display:none;">
+      <h3>📝 Опросник</h3>
+      <p class="small" id="surveyIntro" style="margin-bottom:14px;">Ответьте на несколько вопросов — это поможет организаторам.</p>
+      <div id="surveyAlert" class="alert"></div>
+      <form id="surveyForm">
+        <div id="surveyFields"></div>
+        <div class="actions" style="margin-top:14px;">
+          <button type="submit" class="btn btn-primary" id="btnSurveySubmit" style="width:auto;">Отправить ответы</button>
+        </div>
+      </form>
+      <div id="surveyResult"></div>
+    </div>
+
     <!-- Змейка -->
     <div class="card accent-participant" id="snakeCard" style="grid-column:1 / -1;">
       <h3>🐍 Игра «Змейка»</h3>
@@ -90,11 +104,11 @@
     </div>
   </div>
 
-  <script src="config.js?v=8"></script>
-  <script src="api.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="config.js?v=9"></script>
+  <script src="api.js?v=9"></script>
+  <script src="app.js?v=9"></script>
   <script src="qrcode.min.js?v=2"></script>
   <script src="snake.js?v=8"></script>
-  <script src="participant.js?v=8"></script>
+  <script src="participant.js?v=9"></script>
 </body>
 </html>

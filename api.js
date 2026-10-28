@@ -55,9 +55,35 @@
     return data || {};
   }
 
+  async function requestBlob(path) {
+    var headers = { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+    var token = getToken();
+    if (token) headers.Authorization = 'Bearer ' + token;
+
+    var response;
+    try {
+      response = await fetch(BASE + path, { headers: headers, mode: 'cors', cache: 'no-store' });
+    } catch (e) {
+      var netErr = new Error('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.');
+      netErr.network = true;
+      throw netErr;
+    }
+
+    if (!response.ok) {
+      var data = null;
+      try { data = await response.json(); } catch (e) { data = null; }
+      var err = new Error((data && data.error) || ('Ошибка сервера (' + response.status + ')'));
+      err.status = response.status;
+      throw err;
+    }
+
+    return response.blob();
+  }
+
   window.MF_API = {
     base: BASE,
     request: request,
+    requestBlob: requestBlob,
     getToken: getToken,
     setToken: setToken,
     clearToken: clearToken,

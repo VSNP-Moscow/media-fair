@@ -14,6 +14,7 @@ const userRoutes = require('./routes/users');
 const taskRoutes = require('./routes/tasks');
 const awardRoutes = require('./routes/awards');
 const quizRoutes = require('./routes/quiz');
+const surveyRoutes = require('./routes/survey');
 const gameRoutes = require('./routes/game');
 const settingsRoutes = require('./routes/settings');
 
@@ -73,6 +74,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/awards', awardRoutes);
 app.use('/api/quiz', quizRoutes);
+app.use('/api/survey', surveyRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/settings', settingsRoutes);
 

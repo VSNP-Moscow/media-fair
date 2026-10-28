@@ -67,6 +67,25 @@ CREATE TABLE IF NOT EXISTS settings (
   v VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Опросник: вопросы и варианты ответа задаёт администратор.
+-- options — JSON-массив строк; position задаёт порядок показа.
+CREATE TABLE IF NOT EXISTS survey_questions (
+  id         VARCHAR(24)  NOT NULL PRIMARY KEY,
+  text       VARCHAR(500) NOT NULL,
+  options    JSON         NOT NULL,
+  position   INT          NOT NULL DEFAULT 0,
+  created_at BIGINT       NOT NULL,
+  KEY idx_position (position)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Один ответ на участника. answers — JSON-объект {id_вопроса: номер_варианта}.
+CREATE TABLE IF NOT EXISTS survey_responses (
+  user_id      VARCHAR(24) NOT NULL PRIMARY KEY,
+  answers      JSON        NOT NULL,
+  submitted_at BIGINT      NOT NULL,
+  CONSTRAINT fk_survey_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO settings (k, v) VALUES
   ('quiz_points_per_correct', '10'),
   ('snake_points_per_score', '1'),
