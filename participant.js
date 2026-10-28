@@ -115,6 +115,8 @@
     setTimeout(() => { snakeMsg.textContent = ''; }, 3000);
   });
 
+  $('btnLogout').addEventListener('click', () => window.__MF.logout());
+
   window.addEventListener('storage', () => updatePointsUI());
   updatePointsUI();
 })();

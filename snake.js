@@ -13,7 +13,7 @@ const Snake = (function(){
   const grid = 20;
   const count = canvas.width / grid;
 
-  let snake, food, dir, nextDir, score, running, id;
+  let snake, food, dir, nextDir, score, running, id, frame = 0;
   let best = Number(localStorage.getItem('mf_snake_best') || 0);
   bestEl.textContent = best;
 
@@ -33,6 +33,9 @@ const Snake = (function(){
   }
   function loop(){
     if (!running) return;
+    // ограничиваем скорость: шаг каждые 8 кадров (~7-8 клеток в секунду)
+    frame++;
+    if (frame % 8 !== 0) { id = requestAnimationFrame(loop); return; }
     dir = nextDir;
     const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
 
