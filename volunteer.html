@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Волонтёр</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <header class="topbar">
@@ -25,7 +25,7 @@
     <div class="page-header">
       <div>
         <h2><span class="mark-inline">📱</span>Сканирование и начисление</h2>
-        <div class="subtitle">Отсканируй QR-код участника или введи код вручную, затем начисли баллы команде.</div>
+        <div class="subtitle">Отсканируй QR-код участника или введи код вручную, затем начисли баллы команде. Повторно за одно задание начислить нельзя.</div>
       </div>
     </div>
 
@@ -42,8 +42,8 @@
         </div>
 
         <div class="form-group" style="margin-top:16px;">
-          <label>Или введи QR-код вручную</label>
-          <input id="manualQr" type="text" placeholder="MF|PART|u2">
+          <label for="manualQr">Или введи QR-код вручную</label>
+          <input id="manualQr" type="text" placeholder="MF|PART|u1a2b3c4d5e" autocomplete="off">
           <div class="actions" style="margin-top:8px;">
             <button class="btn-sm primary" id="btnLookupManual">Найти участника</button>
           </div>
@@ -66,9 +66,13 @@
 
           <div id="awardAlert" class="alert" style="margin-bottom:12px;"></div>
           <form id="awardForm">
-            <div class="form-group"><label>За какое задание</label><select id="awardTask"></select></div>
-            <div class="form-group"><label>Количество баллов</label><input id="awardPoints" type="number" value="50" min="0"></div>
-            <div class="form-group"><label>Комментарий (необязательно)</label><input id="awardNote" type="text" placeholder="например: Станция фотосессии пройдена"></div>
+            <div class="form-group"><label for="awardTask">За какое задание</label><select id="awardTask"></select></div>
+            <div class="form-group">
+              <label for="awardPoints">Количество баллов</label>
+              <input id="awardPoints" type="number" value="50" min="0" max="10000">
+              <div class="small" id="awardPointsHint" style="display:none;">Для станции баллы задаёт администратор — менять не нужно.</div>
+            </div>
+            <div class="form-group"><label for="awardNote">Комментарий (необязательно)</label><input id="awardNote" type="text" maxlength="255" placeholder="например: Станция фотосессии пройдена"></div>
             <button type="submit" class="btn btn-primary" style="width:auto;margin-top:10px;">✅ Начислить баллы</button>
           </form>
         </div>
@@ -92,150 +96,11 @@
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="app.js?v=6"></script>
   <!-- html5-qrcode сканер (опционально, требует интернета) -->
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="window.__MF.__qrScannerUnavailable=true;"></script>
-  <script>
-    (function(){
-      const $ = (id) => document.getElementById(id);
-      const user = window.__MF.getCurrentUser();
-      if (!user) return;
-      $('headerUser').textContent = user.username + ' · ' + (user.team || '');
-      $('headerRole').className = 'badge volunteer';
-      $('headerRole').textContent = 'Волонтёр';
-
-      let scannedParticipant = null;
-
-      function renderTasksSelect(){
-        const tasks = window.__MF.getTasks();
-        const sel = $('awardTask');
-        sel.innerHTML = tasks.map(t => `<option value="${t.id}">${window.__MF.escapeHtml(t.title)} (${window.__MF.fmtPoints(t.points||0)} оч.)</option>`).join('');
-      }
-      renderTasksSelect();
-
-      function findByQr(qr){
-        if (!qr) return null;
-        const users = window.__MF.getUsersRaw();
-        return users.find(u => u.qr === qr.trim());
-      }
-
-      function showParticipant(u){
-        if (!u) { $('participantCard').style.display = 'none'; $('participantEmpty').style.display = 'block'; scannedParticipant = null; return; }
-        scannedParticipant = u;
-        $('participantCard').style.display = 'block';
-        $('participantEmpty').style.display = 'none';
-        const letter = (u.username || 'U').charAt(0).toUpperCase();
-        $('avatarLetter').textContent = letter;
-        $('pName').textContent = window.__MF.escapeHtml(u.username);
-        $('pTeam').textContent = window.__MF.escapeHtml(u.team || 'Без команды');
-        $('pQr').textContent = u.qr || '—';
-        const total = window.__MF.getUserTotalPoints(u.id);
-        $('pCurrentPoints').textContent = window.__MF.fmtPoints(total) + ' очков';
-        $('awardAlert').style.display = 'none';
-      }
-
-      $('btnLookupManual').addEventListener('click', () => {
-        const u = findByQr($('manualQr').value);
-        if (!u) { document.getElementById('scanAlert').textContent = 'Участник с таким QR-кодом не найден.'; document.getElementById('scanAlert').style.display = 'block'; return; }
-        showParticipant(u);
-        document.getElementById('scanAlert').textContent = 'Участник найден: ' + u.username;
-        document.getElementById('scanAlert').className = 'alert ok';
-        document.getElementById('scanAlert').style.display = 'block';
-        setTimeout(() => { document.getElementById('scanAlert').style.display = 'none'; }, 3000);
-      });
-      $('manualQr').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnLookupManual').click(); });
-
-      $('awardForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        if (!scannedParticipant) { document.getElementById('awardAlert').textContent = 'Сначала найдите участника.'; document.getElementById('awardAlert').style.display = 'block'; return; }
-        const taskId = $('awardTask').value;
-        const points = Number($('awardPoints').value) || 0;
-        const note = $('awardNote').value.trim();
-        const tasks = window.__MF.getTasks();
-        const task = tasks.find(t => t.id === taskId);
-
-        window.__MF.addPoints({
-          userId: scannedParticipant.id,
-          taskId: taskId,
-          points,
-          awardedBy: user.id,
-          note: note || (task ? task.title : 'Начисление'),
-        });
-        document.getElementById('awardAlert').textContent = 'Начислено +' + window.__MF.fmtPoints(points) + ' участнику ' + scannedParticipant.username;
-        document.getElementById('awardAlert').className = 'alert ok';
-        document.getElementById('awardAlert').style.display = 'block';
-        showParticipant(scannedParticipant);
-        renderRecent();
-        $('awardForm').reset();
-        $('awardPoints').value = '50';
-      });
-
-      function renderRecent(){
-        const points = window.__MF.getPoints().slice().sort((a,b)=>b.awardedAt-a.awardedAt).slice(0, 12);
-        const users = window.__MF.getUsersRaw();
-        const tasks = window.__MF.getTasks();
-        const tbody = $('recentAwards');
-        tbody.innerHTML = '';
-        if (points.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" class="empty" style="padding:10px;">Пока нет начислений</td></tr>';
-          return;
-        }
-        points.forEach(p => {
-          const u = users.find(x => x.id === p.userId);
-          const t = tasks.find(x => x.id === p.taskId);
-          const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${window.__MF.escapeHtml(u ? u.username : '—')}</td><td class="small">${window.__MF.escapeHtml(u ? (u.team||'—') : '—')}</td><td style="color:var(--dashboard);font-weight:700">+${window.__MF.fmtPoints(p.points)}</td><td class="small">${window.__MF.escapeHtml(t ? t.title : (p.note||'—'))}</td><td class="small">${window.__MF.fmtDate(p.awardedAt)}</td>`;
-          tbody.appendChild(tr);
-        });
-      }
-
-      /* ---------- сканер камеры (html5-qrcode) ---------- */
-      function tryCameraScanner(){
-        const Html5Qrcode = window.Html5Qrcode;
-        if (window.__MF.__qrScannerUnavailable || !Html5Qrcode) return false;
-        const reader = $('reader');
-        reader.innerHTML = '';
-        const videoContainer = document.createElement('div');
-        videoContainer.id = 'qr-video-container';
-        reader.appendChild(videoContainer);
-
-        const html5Qrcode = new Html5Qrcode('qr-video-container', { verbose: false });
-        html5Qrcode.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            html5Qrcode.stop().then(() => {}).catch(() => {});
-            const u = findByQr(decodedText);
-            if (u) {
-              showParticipant(u);
-              document.getElementById('scanAlert').textContent = 'Отсканировано: ' + u.username;
-              document.getElementById('scanAlert').className = 'alert ok';
-              document.getElementById('scanAlert').style.display = 'block';
-              setTimeout(() => { document.getElementById('scanAlert').style.display = 'none'; }, 3000);
-            } else {
-              document.getElementById('scanAlert').textContent = 'QR-код не распознан как участник.';
-              document.getElementById('scanAlert').style.display = 'block';
-            }
-          },
-          (errorMessage) => {}
-        ).catch(err => {
-          reader.innerHTML = '<div style="color:var(--text-muted);">Камера недоступна. Используйте ручной ввод.</div>';
-          console.warn('QR scanner start failed', err);
-          return false;
-        });
-        return true;
-      }
-
-      tryCameraScanner();
-
-      window.addEventListener('storage', () => {
-        if (scannedParticipant) showParticipant(scannedParticipant);
-        renderRecent();
-      });
-
-      $('btnLogout').addEventListener('click', () => window.__MF.logout());
-      renderRecent();
-    })();
-  </script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="window.__mfScannerUnavailable=true;"></script>
+  <script src="volunteer.js?v=6"></script>
 </body>
 </html>

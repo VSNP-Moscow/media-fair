@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Администратор</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <header class="topbar">
@@ -25,7 +25,7 @@
     <div class="page-header">
       <div>
         <h2><span class="mark-inline">👑</span>Панель администратора</h2>
-        <div class="subtitle">Создавайте пользователей, назначайте задания и следите за очками команд.</div>
+        <div class="subtitle">Пользователи, задания и очки команд. Все данные хранятся в общей базе и видны на всех устройствах.</div>
       </div>
       <button class="btn btn-primary" id="btnRefresh" style="width:auto;">⟳ Обновить всё</button>
     </div>
@@ -63,68 +63,98 @@
         </div>
       </div>
 
+      <!-- Настройки очков -->
+      <div class="card accent-admin">
+        <h3>⚙️ Настройки очков</h3>
+        <p class="small" style="margin-bottom:14px;">Сколько баллов начисляется за задания. Изменения применяются сразу.</p>
+        <form id="settingsForm">
+          <div class="form-group">
+            <label for="setQuizPoints">За верный ответ викторины</label>
+            <input id="setQuizPoints" type="number" min="0" max="1000" step="1">
+          </div>
+          <div class="form-group">
+            <label for="setSnakePoints">За 1 очко в змейке</label>
+            <input id="setSnakePoints" type="number" min="0" max="100" step="1">
+          </div>
+          <div class="form-group">
+            <label for="setStationPoints">За станцию по умолчанию</label>
+            <input id="setStationPoints" type="number" min="0" max="1000" step="1">
+          </div>
+          <div id="settingsAlert" class="alert"></div>
+          <div class="actions" style="margin-top:12px;">
+            <button type="submit" class="btn-sm primary">Сохранить настройки</button>
+          </div>
+        </form>
+      </div>
+
       <!-- Табло кратко -->
-      <div class="card accent-dashboard" style="grid-column:1 / -1;">
+      <div class="card accent-dashboard">
         <h3>🏆 Табло команд (кратко)</h3>
         <div class="leaderboard" id="adminLeaderboard"></div>
         <div class="refresh-hint">Полноэкранное табло: <a href="dashboard.html" target="_blank" style="color:var(--primary);font-weight:700;text-decoration:none;">открыть в новом окне ↗</a></div>
       </div>
     </div>
 
-    <!-- Модалка добавления пользователя -->
+    <!-- Модалка пользователя -->
     <div class="modal-overlay" id="addUserModal">
       <div class="modal">
         <div class="close" id="closeAddUser">✕</div>
-        <h3>Новый пользователь</h3>
+        <h3 id="modalUserTitle">Новый пользователь</h3>
         <div id="addUserAlert" class="alert"></div>
         <form id="addUserForm">
-          <div class="form-group"><label>Логин</label><input id="auUsername" type="text" required></div>
-          <div class="form-group"><label>Пароль</label><input id="auPassword" type="password" required></div>
-          <div class="form-group"><label>Роль</label><select id="auRole">
+          <div class="form-group"><label for="auUsername">Логин</label><input id="auUsername" type="text" minlength="3" maxlength="32" required autocomplete="off"></div>
+          <div class="form-group">
+            <label for="auPassword">Пароль</label>
+            <input id="auPassword" type="password" minlength="6" maxlength="72" autocomplete="new-password">
+            <div class="small" id="passwordHint" style="display:none;">Оставьте пустым, чтобы не менять пароль.</div>
+          </div>
+          <div class="form-group"><label for="auRole">Роль</label><select id="auRole">
             <option value="participant">Участник</option>
             <option value="volunteer">Волонтёр</option>
             <option value="admin">Администратор</option>
           </select></div>
-          <div class="form-group"><label>Команда</label><input id="auTeam" type="text" placeholder="например, Команда «Медиа»"></div>
+          <div class="form-group"><label for="auTeam">Команда</label><input id="auTeam" type="text" maxlength="120" placeholder="например, Команда «Медиа»"></div>
           <div class="actions" style="margin-top:14px;">
             <button type="button" class="btn-sm" id="btnCancelAddUser">Отмена</button>
-            <button type="submit" class="btn-sm primary">Создать</button>
+            <button type="submit" class="btn-sm primary">Сохранить</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Модалка добавления задания -->
+    <!-- Модалка задания -->
     <div class="modal-overlay" id="addTaskModal">
       <div class="modal">
         <div class="close" id="closeAddTask">✕</div>
-        <h3>Новое задание</h3>
+        <h3 id="modalTaskTitle">Новое задание</h3>
         <div id="addTaskAlert" class="alert"></div>
         <form id="addTaskForm">
-          <div class="form-group"><label>Название</label><input id="atTitle" type="text" required></div>
-          <div class="form-group"><label>Описание</label><textarea id="atDesc" rows="2" required></textarea></div>
+          <div class="form-group"><label for="atTitle">Название</label><input id="atTitle" type="text" maxlength="160" required></div>
+          <div class="form-group"><label for="atDesc">Описание</label><textarea id="atDesc" rows="2" maxlength="2000"></textarea></div>
           <div class="form-row">
-            <div class="form-group"><label>Тип</label><select id="atType">
+            <div class="form-group"><label for="atType">Тип</label><select id="atType">
               <option value="station">Станция (волонтёр)</option>
               <option value="quiz">Викторина</option>
               <option value="game">Игра (змейка)</option>
             </select></div>
-            <div class="form-group"><label>Базовые очки</label><input id="atPoints" type="number" value="30" min="0"></div>
+            <div class="form-group"><label for="atPoints">Базовые очки</label><input id="atPoints" type="number" value="30" min="0" max="10000"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Широта</label><input id="atLat" type="number" step="any" value="55.7538"></div>
-            <div class="form-group"><label>Долгота</label><input id="atLng" type="number" step="any" value="37.6218"></div>
+            <div class="form-group"><label for="atLat">Широта</label><input id="atLat" type="number" step="any" value="55.7538" min="-90" max="90"></div>
+            <div class="form-group"><label for="atLng">Долгота</label><input id="atLng" type="number" step="any" value="37.6218" min="-180" max="180"></div>
           </div>
           <div class="actions" style="margin-top:14px;">
             <button type="button" class="btn-sm" id="btnCancelAddTask">Отмена</button>
-            <button type="submit" class="btn-sm primary">Создать</button>
+            <button type="submit" class="btn-sm primary">Сохранить</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
-  <script src="admin.js?v=2"></script>
+  <script src="config.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="app.js?v=6"></script>
+  <script src="admin.js?v=6"></script>
 </body>
 </html>

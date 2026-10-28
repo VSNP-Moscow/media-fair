@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Участник</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 </head>
 <body>
@@ -49,7 +49,7 @@
       <div class="card accent-participant">
         <h3>💰 Мои очки</h3>
         <div style="font-size:2.6rem;font-weight:800;color:var(--dashboard);font-family:ui-monospace;" id="myPoints">0</div>
-        <div class="small">Всего заработано на табло</div>
+        <div class="small">Всего заработано на табло · обновляется автоматически</div>
         <div class="table-wrap" style="margin-top:14px;">
           <table style="font-size:0.85rem;">
             <thead>
@@ -69,12 +69,13 @@
       <div id="mapOffline" class="map-offline" style="display:none;">
         Карта требует интернета (OpenStreetMap). Если офлайн — список заданий ниже.
       </div>
+      <div id="taskList" class="small" style="margin-top:10px;"></div>
     </div>
 
     <!-- Викторина -->
     <div class="card accent-participant" style="grid-column:1 / -1;">
       <h3>🧠 Мини-викторина</h3>
-      <p class="small" style="margin-bottom:14px;">Ответь на вопросы — за каждый верный ответ получишь очки. Можно проходить повторно.</p>
+      <p class="small" style="margin-bottom:14px;">Очки начисляются за лучший результат: каждая новая верная серия ответов добавляет баллы. Накрутить повторами нельзя.</p>
       <div id="quizContainer"></div>
       <div class="actions" style="margin-top:12px;">
         <button class="btn btn-primary" id="btnQuizSubmit" style="width:auto;">Ответить и получить очки</button>
@@ -85,7 +86,7 @@
     <!-- Змейка -->
     <div class="card accent-participant" style="grid-column:1 / -1;">
       <h3>🐍 Игра «Змейка»</h3>
-      <p class="small" style="margin-bottom:12px;">Управляй змейкой, ешь еду. Каждое очко в игры = 1 очко на табло. Лучший результат сохраняется.</p>
+      <p class="small" style="margin-bottom:12px;">Управляй змейкой, ешь еду. Очки начисляются за улучшение личного рекорда. Лучший результат сохраняется в базе.</p>
       <div class="snake-wrap">
         <canvas id="snakeCanvas" width="340" height="340"></canvas>
         <div class="snake-stats">
@@ -110,10 +111,12 @@
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="app.js?v=6"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
   <script src="qrcode.min.js?v=2"></script>
-  <script src="snake.js?v=6"></script>
-  <script src="participant.js?v=5"></script>
+  <script src="snake.js?v=7"></script>
+  <script src="participant.js?v=6"></script>
 </body>
 </html>

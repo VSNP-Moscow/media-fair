@@ -1,144 +1,210 @@
 /* ================= Медиаярмарка — Волонтёр ================= */
 
-(function(){
-  if (!window.__MF.requireRole(['volunteer'])) return;
+(function () {
+  'use strict';
 
   const $ = (id) => document.getElementById(id);
-  const user = window.__MF.getCurrentUser();
-  if (!user) return;
-  $('headerUser').textContent = user.username + ' · ' + (user.team || '');
-  $('headerRole').className = 'badge volunteer';
-  $('headerRole').textContent = 'Волонтёр';
+  const MF = window.__MF;
 
+  let tasks = [];
   let scannedParticipant = null;
+  let selectedTask = null;
+  let scanner = null;
 
-  function renderTasksSelect(){
-    const tasks = window.__MF.getTasks();
-    const sel = $('awardTask');
-    sel.innerHTML = tasks.map(t => `<option value="${t.id}">${window.__MF.escapeHtml(t.title)} (${window.__MF.fmtPoints(t.points||0)} оч.)</option>`).join('');
-  }
-  renderTasksSelect();
+  /* ---------- задания ---------- */
+  function renderTasksSelect() {
+    const select = $('awardTask');
 
-  function findByQr(qr){
-    if (!qr) return null;
-    const users = window.__MF.getUsersRaw();
-    return users.find(u => u.qr === qr.trim());
-  }
-
-  function showParticipant(u){
-    if (!u) { $('participantCard').style.display = 'none'; $('participantEmpty').style.display = 'block'; scannedParticipant = null; return; }
-    scannedParticipant = u;
-    $('participantCard').style.display = 'block';
-    $('participantEmpty').style.display = 'none';
-    const letter = (u.username || 'U').charAt(0).toUpperCase();
-    $('avatarLetter').textContent = letter;
-    $('pName').textContent = window.__MF.escapeHtml(u.username);
-    $('pTeam').textContent = window.__MF.escapeHtml(u.team || 'Без команды');
-    $('pQr').textContent = u.qr || '—';
-    const total = window.__MF.getUserTotalPoints(u.id);
-    $('pCurrentPoints').textContent = window.__MF.fmtPoints(total) + ' очков';
-    $('awardAlert').style.display = 'none';
-  }
-
-  $('btnLookupManual').addEventListener('click', () => {
-    const u = findByQr($('manualQr').value);
-    if (!u) { $('scanAlert').textContent = 'Участник с таким QR-кодом не найден.'; $('scanAlert').style.display = 'block'; return; }
-    showParticipant(u);
-    $('scanAlert').textContent = 'Участник найден: ' + u.username;
-    $('scanAlert').className = 'alert ok';
-    $('scanAlert').style.display = 'block';
-    setTimeout(() => { $('scanAlert').style.display = 'none'; }, 3000);
-  });
-  $('manualQr').addEventListener('keypress', e => { if (e.key === 'Enter') $('btnLookupManual').click(); });
-
-  $('awardForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!scannedParticipant) { $('awardAlert').textContent = 'Сначала найдите участника.'; $('awardAlert').style.display = 'block'; return; }
-    const taskId = $('awardTask').value;
-    const points = Number($('awardPoints').value) || 0;
-    const note = $('awardNote').value.trim();
-    const tasks = window.__MF.getTasks();
-    const task = tasks.find(t => t.id === taskId);
-
-    window.__MF.addPoints({
-      userId: scannedParticipant.id,
-      taskId: taskId,
-      points,
-      awardedBy: user.id,
-      note: note || (task ? task.title : 'Начисление'),
-    });
-    $('awardAlert').textContent = 'Начислено +' + window.__MF.fmtPoints(points) + ' участнику ' + scannedParticipant.username;
-    $('awardAlert').className = 'alert ok';
-    $('awardAlert').style.display = 'block';
-    showParticipant(scannedParticipant);
-    renderRecent();
-    $('awardForm').reset();
-    $('awardPoints').value = '50';
-  });
-
-  function renderRecent(){
-    const points = window.__MF.getPoints().slice().sort((a,b)=>b.awardedAt-a.awardedAt).slice(0, 12);
-    const users = window.__MF.getUsersRaw();
-    const tasks = window.__MF.getTasks();
-    const tbody = $('recentAwards');
-    tbody.innerHTML = '';
-    if (points.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty" style="padding:10px;">Пока нет начислений</td></tr>';
+    if (tasks.length === 0) {
+      select.innerHTML = '<option value="">Заданий пока нет</option>';
+      select.disabled = true;
       return;
     }
-    points.forEach(p => {
-      const u = users.find(x => x.id === p.userId);
-      const t = tasks.find(x => x.id === p.taskId);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${window.__MF.escapeHtml(u ? u.username : '—')}</td><td class="small">${window.__MF.escapeHtml(u ? (u.team||'—') : '—')}</td><td style="color:var(--dashboard);font-weight:700">+${window.__MF.fmtPoints(p.points)}</td><td class="small">${window.__MF.escapeHtml(t ? t.title : (p.note||'—'))}</td><td class="small">${window.__MF.fmtDate(p.awardedAt)}</td>`;
-      tbody.appendChild(tr);
-    });
+
+    select.disabled = false;
+    select.innerHTML = tasks
+      .map((t) => {
+        const suffix = t.type === 'station' ? '' : '';
+        return '<option value="' + MF.escapeHtml(t.id) + '">' +
+          MF.escapeHtml(t.title) + ' (' + MF.fmtPoints(t.points) + ' оч.' + suffix + ')</option>';
+      })
+      .join('');
+
+    syncTaskFields();
   }
 
-  /* ---------- сканер камеры (html5-qrcode) ---------- */
-  function tryCameraScanner(){
+  function syncTaskFields() {
+    const id = $('awardTask').value;
+    selectedTask = tasks.find((t) => t.id === id) || null;
+    const isStation = !!selectedTask && selectedTask.type === 'station';
+
+    $('awardPoints').disabled = isStation;
+    $('awardPointsHint').style.display = isStation ? 'block' : 'none';
+    if (selectedTask) $('awardPoints').value = String(selectedTask.points);
+  }
+
+  /* ---------- поиск участника ---------- */
+  function showParticipant(participant) {
+    if (!participant) {
+      scannedParticipant = null;
+      $('participantCard').style.display = 'none';
+      $('participantEmpty').style.display = 'block';
+      return;
+    }
+
+    scannedParticipant = participant;
+    $('participantCard').style.display = 'block';
+    $('participantEmpty').style.display = 'none';
+    $('avatarLetter').textContent = (participant.username || 'U').charAt(0).toUpperCase();
+    $('pName').textContent = participant.username;
+    $('pTeam').textContent = participant.team || 'Без команды';
+    $('pQr').textContent = participant.qr || '—';
+    $('pCurrentPoints').textContent = MF.fmtPoints(participant.totalPoints) + ' очков';
+    MF.hideAlert('awardAlert');
+  }
+
+  function scanMessage(message, type) {
+    MF.showAlert('scanAlert', message, type);
+    if (type === 'ok') setTimeout(() => MF.hideAlert('scanAlert'), 4000);
+  }
+
+  async function lookup(qr) {
+    const code = (qr || '').trim();
+    if (!code) {
+      scanMessage('Введите QR-код участника');
+      return;
+    }
+
+    try {
+      const participant = await MF.lookupByQr(code);
+      showParticipant(participant);
+      scanMessage('Найден участник: ' + participant.username, 'ok');
+      $('manualQr').value = '';
+    } catch (err) {
+      showParticipant(null);
+      scanMessage(err.message);
+    }
+  }
+
+  /* ---------- начисление ---------- */
+  async function submitAward(event) {
+    event.preventDefault();
+    MF.hideAlert('awardAlert');
+
+    if (!scannedParticipant) {
+      MF.showAlert('awardAlert', 'Сначала найдите участника.');
+      return;
+    }
+    if (!selectedTask) {
+      MF.showAlert('awardAlert', 'Выберите задание.');
+      return;
+    }
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+
+    try {
+      const result = await MF.awardPoints({
+        userId: scannedParticipant.id,
+        taskId: selectedTask.id,
+        points: Number($('awardPoints').value) || 0,
+        note: $('awardNote').value.trim(),
+      });
+
+      scannedParticipant.totalPoints = result.totalPoints;
+      showParticipant(scannedParticipant);
+      MF.showAlert('awardAlert', 'Начислено +' + MF.fmtPoints(result.points) + ' участнику ' + scannedParticipant.username, 'ok');
+
+      $('awardNote').value = '';
+      await refreshRecent();
+    } catch (err) {
+      MF.showAlert('awardAlert', err.message);
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  /* ---------- последние начисления ---------- */
+  async function refreshRecent() {
+    const tbody = $('recentAwards');
+    try {
+      const entries = await MF.getRecentAwards();
+      tbody.innerHTML = '';
+
+      if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty" style="padding:10px;">Пока нет начислений</td></tr>';
+        return;
+      }
+
+      entries.forEach((entry) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td>' + MF.escapeHtml(entry.username) + '</td>' +
+          '<td class="small">' + MF.escapeHtml(entry.team || '—') + '</td>' +
+          '<td style="color:var(--dashboard);font-weight:700">+' + MF.fmtPoints(entry.points) + '</td>' +
+          '<td class="small">' + MF.escapeHtml(entry.note || '—') + '</td>' +
+          '<td class="small">' + MF.fmtDate(entry.awardedAt) + '</td>';
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty" style="padding:10px;">' + MF.escapeHtml(err.message) + '</td></tr>';
+    }
+  }
+
+  /* ---------- камера ---------- */
+  function startCameraScanner() {
     const Html5Qrcode = window.Html5Qrcode;
-    if (window.__MF.__qrScannerUnavailable || !Html5Qrcode) return false;
+    if (window.__mfScannerUnavailable || !Html5Qrcode) return;
+
     const reader = $('reader');
     reader.innerHTML = '';
-    const videoContainer = document.createElement('div');
-    videoContainer.id = 'qr-video-container';
-    reader.appendChild(videoContainer);
+    const container = document.createElement('div');
+    container.id = 'qr-video-container';
+    reader.appendChild(container);
 
-    const html5Qrcode = new Html5Qrcode('qr-video-container', { verbose: false });
-    html5Qrcode.start(
+    scanner = new Html5Qrcode('qr-video-container', { verbose: false });
+    scanner.start(
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        html5Qrcode.stop().then(() => {}).catch(() => {});
-        const u = findByQr(decodedText);
-        if (u) {
-          showParticipant(u);
-          $('scanAlert').textContent = 'Отсканировано: ' + u.username;
-          $('scanAlert').className = 'alert ok';
-          $('scanAlert').style.display = 'block';
-          setTimeout(() => { $('scanAlert').style.display = 'none'; }, 3000);
-        } else {
-          $('scanAlert').textContent = 'QR-код не распознан как участник.';
-          $('scanAlert').style.display = 'block';
-        }
+      async (decodedText) => {
+        try { await scanner.stop(); } catch (e) { /* уже остановлен */ }
+        reader.innerHTML = '<div style="padding:14px;color:#e2e8f0;">Код считан. Нажмите «Начать камеру» для следующего участника.</div>';
+        await lookup(decodedText);
       },
-      (errorMessage) => {}
-    ).catch(err => {
-      reader.innerHTML = '<div style="color:var(--text-muted);">Камера недоступна. Используйте ручной ввод.</div>';
+      () => { /* ошибки распознавания кадра игнорируем */ }
+    ).catch((err) => {
+      reader.innerHTML = '<div style="padding:14px;color:var(--text-muted);">Камера недоступна. Используйте ручной ввод.</div>';
       console.warn('QR scanner start failed', err);
-      return false;
     });
-    return true;
   }
 
-  tryCameraScanner();
+  /* ---------- запуск ---------- */
+  (async function boot() {
+    const user = await MF.init(['volunteer', 'admin']);
+    if (!user) return;
 
-  window.addEventListener('storage', () => {
-    if (scannedParticipant) showParticipant(scannedParticipant);
-    renderRecent();
-  });
+    $('btnLogout').addEventListener('click', () => MF.logout());
+    $('btnLookupManual').addEventListener('click', () => lookup($('manualQr').value));
+    $('manualQr').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        lookup($('manualQr').value);
+      }
+    });
+    $('awardTask').addEventListener('change', syncTaskFields);
+    $('awardForm').addEventListener('submit', submitAward);
+    $('awardForm').addEventListener('reset', () => setTimeout(syncTaskFields, 0));
 
-  $('btnLogout').addEventListener('click', () => window.__MF.logout());
-  renderRecent();
+    try {
+      tasks = await MF.getTasks(true);
+      renderTasksSelect();
+      await refreshRecent();
+    } catch (err) {
+      MF.showFatal(err.message);
+      return;
+    }
+
+    startCameraScanner();
+    setInterval(() => { refreshRecent().catch(() => {}); }, 20000);
+  })();
 })();

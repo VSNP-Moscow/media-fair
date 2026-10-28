@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — вход</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div class="login-page">
@@ -17,8 +17,7 @@
 
       <div id="loginAlert" class="alert"></div>
 
-      <!-- Форма входа (показывается когда пользователи уже созданы) -->
-      <form id="loginForm" style="display:none;">
+      <form id="loginForm">
         <div class="role-grid">
           <div class="role-card selected" data-role="admin">
             <div class="icon admin">👑</div>
@@ -54,45 +53,46 @@
         <button type="submit" id="loginBtn" class="btn btn-primary">Войти</button>
       </form>
 
-      <!-- Форма создания первого администратора (показываетсa, если пользователей ещё нет) -->
-      <div id="firstAdminForm" style="display:none; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:18px;">
+      <!-- Создание первого администратора: показывается только на пустой базе -->
+      <div id="firstAdminForm" style="display:none; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:20px; margin-top:18px;">
         <h3 style="font-size:1.1rem; margin-bottom:12px; color:var(--text);">👑 Создать первого администратора</h3>
-        <p class="small" style="margin-bottom:14px;">Пользователей ещё нет. Создайте первого администратора, чтобы начать работу.</p>
+        <p class="small" style="margin-bottom:14px;">База пуста. Создайте первого администратора, чтобы начать работу.</p>
         <form id="createAdminForm">
-          <div class="form-group"><label>Логин администратора</label><input id="caUsername" type="text" required></div>
-          <div class="form-group"><label>Пароль</label><input id="caPassword" type="password" required></div>
-          <div class="form-group"><label>Команда</label><input id="caTeam" type="text" placeholder="например, Организаторы" required></div>
+          <div class="form-group"><label for="caUsername">Логин администратора</label><input id="caUsername" type="text" minlength="3" maxlength="32" required autocomplete="username"></div>
+          <div class="form-group"><label for="caPassword">Пароль</label><input id="caPassword" type="password" minlength="6" required autocomplete="new-password"></div>
+          <div class="form-group"><label for="caTeam">Команда</label><input id="caTeam" type="text" maxlength="120" placeholder="например, Организаторы"></div>
           <button type="submit" class="btn btn-primary">Создать администратора</button>
         </form>
-        <div class="actions" style="margin-top:12px;">
-          <button type="button" class="btn-sm" id="btnSkipCreate">Позже</button>
-        </div>
-      </div>
-
-      <div class="seed-note" style="display:none;" id="demoNote">
-        <b>Демо-доступ отключён.</b> Создайте первого администратора вручную.
       </div>
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="app.js?v=6"></script>
   <script>
-    (function(){
-      const form = document.getElementById('loginForm');
-      const btn = document.getElementById('loginBtn');
-      const usernameInput = document.getElementById('loginUsername');
-      const passwordInput = document.getElementById('loginPassword');
-      const alertEl = document.getElementById('loginAlert');
-      const firstAdminForm = document.getElementById('firstAdminForm');
-      const createAdminForm = document.getElementById('createAdminForm');
-      const btnSkipCreate = document.getElementById('btnSkipCreate');
-      const loginSubtitle = document.getElementById('loginSubtitle');
+    (function () {
+      const $ = (id) => document.getElementById(id);
+      const form = $('loginForm');
+      const btn = $('loginBtn');
+      const usernameInput = $('loginUsername');
+      const passwordInput = $('loginPassword');
+      const alertEl = $('loginAlert');
+      const firstAdminForm = $('firstAdminForm');
+      const createAdminForm = $('createAdminForm');
+      const loginSubtitle = $('loginSubtitle');
 
       let selectedRole = 'admin';
 
-      document.querySelectorAll('.role-card').forEach(card => {
+      function showError(message, type) {
+        alertEl.textContent = message;
+        alertEl.className = 'alert ' + (type === 'ok' ? 'ok' : '');
+        alertEl.style.display = 'block';
+      }
+
+      document.querySelectorAll('.role-card').forEach((card) => {
         card.addEventListener('click', () => {
-          document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+          document.querySelectorAll('.role-card').forEach((c) => c.classList.remove('selected'));
           card.classList.add('selected');
           selectedRole = card.dataset.role;
           loginSubtitle.textContent = 'Вход как ' + (window.__MF.ROLE_LABELS[selectedRole] || selectedRole).toLowerCase() + ': введите логин и пароль.';
@@ -100,47 +100,24 @@
         });
       });
 
-      // Форма входа всегда доступна; на первом запуске дополнительно показываем форму создания администратора
-      form.style.display = 'block';
-      if (!window.__MF.hasUsers()) {
-        firstAdminForm.style.display = 'block';
-        loginSubtitle.textContent = 'Первый запуск — создайте администратора, затем войдите.';
-      } else {
-        loginSubtitle.textContent = 'Войдите под своей ролью: администратор, участник или волонтёр.';
-      }
-
       createAdminForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
         submitBtn.textContent = 'Создание...';
         try {
-          await window.__MF.addUser({
-            username: document.getElementById('caUsername').value.trim(),
-            password: document.getElementById('caPassword').value,
-            role: 'admin',
-            team: document.getElementById('caTeam').value.trim(),
+          const user = await window.__MF.bootstrapAdmin({
+            username: $('caUsername').value.trim(),
+            password: $('caPassword').value,
+            team: $('caTeam').value.trim(),
           });
-          firstAdminForm.style.display = 'none';
-          form.style.display = 'block';
-          loginSubtitle.textContent = 'Администратор создан. Теперь войдите.';
-          alertEl.textContent = 'Администратор создан. Войдите под его логином.';
-          alertEl.className = 'alert ok';
-          alertEl.style.display = 'block';
-          setTimeout(() => { alertEl.style.display = 'none'; }, 4000);
+          showError('Администратор создан. Открываю панель...', 'ok');
+          window.location.href = window.__MF.ROLE_PAGES[user.role] || 'admin.html';
         } catch (err) {
-          alertEl.textContent = err.message;
-          alertEl.style.display = 'block';
-        } finally {
+          showError(err.message);
           submitBtn.disabled = false;
           submitBtn.textContent = 'Создать администратора';
         }
-      });
-
-      btnSkipCreate.addEventListener('click', () => {
-        firstAdminForm.style.display = 'none';
-        form.style.display = 'block';
-        loginSubtitle.textContent = 'Войдите под своей ролью.';
       });
 
       form.addEventListener('submit', async (e) => {
@@ -151,23 +128,40 @@
         try {
           const user = await window.__MF.login(usernameInput.value.trim(), passwordInput.value);
           if (user.role !== selectedRole) {
-            throw new Error('Выбранная роль не совпадает с учётной записью ("' + window.__MF.ROLE_LABELS[user.role] + '").');
+            window.__MF.logout();
+            throw new Error('Выбранная роль не совпадает с учётной записью («' + window.__MF.ROLE_LABELS[user.role] + '»).');
           }
-          const target = { admin: 'admin.html', participant: 'participant.html', volunteer: 'volunteer.html' }[user.role];
-          location.href = target;
+          window.location.href = window.__MF.ROLE_PAGES[user.role] || 'index.html';
         } catch (err) {
-          sessionStorage.removeItem('mf_user');
-          alertEl.textContent = err.message;
-          alertEl.style.display = 'block';
+          showError(err.message);
           btn.disabled = false;
           btn.textContent = 'Войти';
         }
       });
 
-      const u = window.__MF.restoreSession();
-      if (u) {
-        location.href = { admin:'admin.html', participant:'participant.html', volunteer:'volunteer.html' }[u.role] || 'index.html';
-      }
+      /* уже вошли — сразу в кабинет */
+      (async function boot() {
+        try {
+          if (window.MF_API.getToken()) {
+            const data = await window.MF_API.request('/auth/me');
+            window.location.href = window.__MF.ROLE_PAGES[data.user.role] || 'index.html';
+            return;
+          }
+        } catch (err) {
+          if (err.status === 401) window.MF_API.clearToken();
+          else showError(err.message);
+        }
+
+        try {
+          const status = await window.__MF.bootstrapStatus();
+          if (status.needsAdmin) {
+            firstAdminForm.style.display = 'block';
+            loginSubtitle.textContent = 'Первый запуск — создайте администратора.';
+          }
+        } catch (err) {
+          showError('Сервер недоступен: ' + err.message);
+        }
+      })();
     })();
   </script>
 </body>

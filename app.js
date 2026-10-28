@@ -1,275 +1,309 @@
-/* ================= Медиаярмарка — общая логика (app.js) ================= */
+/* ================= Медиаярмарка — общая логика (app.js) =================
+   Все данные хранятся на сервере (API + MySQL). В браузере — только токен.
+   ====================================================================== */
 
-const STORAGE = {
-  USERS: 'mf_users',
-  TASKS: 'mf_tasks',
-  POINTS: 'mf_points',
-  QUIZ_RESULTS: 'mf_quiz_results',
-  SNAKE_SCORES: 'mf_snake_scores',
-  SETTINGS: 'mf_settings',
-};
-
-const ROLE_LABELS = {
+var ROLE_LABELS = {
   admin: 'Администратор',
   participant: 'Участник',
   volunteer: 'Волонтёр',
 };
 
-const DEFAULT_SETTINGS = {
-  snakePointsPerScore: 1,  // 1 очко за 1 очко в змейке
-  quizPointsPerCorrect: 10, // 10 очков за верный ответ
-  stationPoints: 50,       // очки за станцию (volunteer awards)
+var ROLE_PAGES = {
+  admin: 'admin.html',
+  participant: 'participant.html',
+  volunteer: 'volunteer.html',
 };
 
-let currentUser = null;
+var __mfState = {
+  user: null,
+  tasks: null,
+};
 
-/* ---------- хранилище ---------- */
-function get(key, def) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw === null ? def : JSON.parse(raw);
-  } catch (e) {
-    return def;
+/* ---------- утилиты ---------- */
+function fmtDate(ts) {
+  if (!ts) return '—';
+  return new Date(ts).toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function fmtPoints(n) {
+  return Number(n || 0).toLocaleString('ru-RU');
+}
+
+function escapeHtml(text) {
+  if (text === null || text === undefined) return '';
+  var div = document.createElement('div');
+  div.textContent = String(text);
+  return div.innerHTML;
+}
+
+function showAlert(elemId, message, type) {
+  var el = document.getElementById(elemId);
+  if (!el) return;
+  el.textContent = message;
+  el.className = 'alert ' + (type === 'ok' ? 'ok' : '');
+  el.style.display = 'block';
+}
+
+function hideAlert(elemId) {
+  var el = document.getElementById(elemId);
+  if (el) {
+    el.style.display = 'none';
+    el.textContent = '';
   }
 }
-function set(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
-}
 
-/* ---------- пароль (простой хэш через SubtleCrypto) ---------- */
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'media-fair-salt-2026');
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-async function verifyPassword(password, hash) {
-  return (await hashPassword(password)) === hash;
-}
-
-/* ---------- сидирование демо-данных (отключено) ---------- */
-// Демо-доступ удалён. Администратор создаёт первого пользователя вручную
-// через форму регистрации (ниже описание, как добавить первого админа).
-function seedDefaultData() {
-  // intentionally empty — no demo accounts, no demo tasks
-}
-
-/* ---------- пользователи ---------- */
-async function getUsers() {
-  const users = get(STORAGE.USERS, []);
-  // без паролей для списков
-  return users.map(({ password, ...rest }) => rest);
-}
-function getUsersRaw() {
-  return get(STORAGE.USERS, []);
-}
-async function saveUsers(users) {
-  set(STORAGE.USERS, users);
-}
-async function addUser({ username, password, role, team }) {
-  const users = getUsersRaw();
-  if (users.some(u => u.username === username)) throw new Error('Пользователь с таким логином уже существует');
-  const id = 'u' + Date.now();
-  const user = {
-    id, username, password: await hashPassword(password), role, team,
-    qr: 'MF|' + (role === 'admin' ? 'ADMIN' : role === 'volunteer' ? 'VOL' : 'PART') + '|' + id,
-    createdAt: Date.now(),
-  };
-  users.push(user);
-  set(STORAGE.USERS, users);
-  return { ...user, password: undefined };
-}
-function updateUser(id, changes) {
-  const users = getUsersRaw();
-  const idx = users.findIndex(u => u.id === id);
-  if (idx === -1) throw new Error('Пользователь не найден');
-  if (changes.password) changes.password = hashPassword(changes.password); // note: async, keep simple below
-  Object.assign(users[idx], changes);
-  set(STORAGE.USERS, users);
-  return users[idx];
-}
-async function updateUserAsync(id, changes) {
-  const users = getUsersRaw();
-  const idx = users.findIndex(u => u.id === id);
-  if (idx === -1) throw new Error('Пользователь не найден');
-  if (changes.password) changes.password = await hashPassword(changes.password);
-  Object.assign(users[idx], changes);
-  set(STORAGE.USERS, users);
-  return users[idx];
-}
-function deleteUser(id) {
-  let users = getUsersRaw();
-  users = users.filter(u => u.id !== id);
-  set(STORAGE.USERS, users);
-}
-
-/* ---------- задачи ---------- */
-function getTasks() { return get(STORAGE.TASKS, []); }
-function saveTasks(tasks) { set(STORAGE.TASKS, tasks); }
-function addTask(task) {
-  const tasks = getTasks();
-  const newTask = { id: 't' + Date.now(), ...task, createdAt: Date.now() };
-  tasks.push(newTask);
-  set(STORAGE.TASKS, tasks);
-  return newTask;
-}
-function updateTask(id, changes) {
-  const tasks = getTasks();
-  const idx = tasks.findIndex(t => t.id === id);
-  if (idx === -1) throw new Error('Задание не найдено');
-  Object.assign(tasks[idx], changes);
-  set(STORAGE.TASKS, tasks);
-  return tasks[idx];
-}
-function deleteTask(id) {
-  let tasks = getTasks();
-  tasks = tasks.filter(t => t.id !== id);
-  set(STORAGE.TASKS, tasks);
-}
-
-/* ---------- очки ---------- */
-function getPoints() { return get(STORAGE.POINTS, []); }
-function addPoints({ userId, taskId, points, awardedBy, note }) {
-  const pointsList = getPoints();
-  const entry = {
-    id: 'p' + Date.now(),
-    userId, taskId, points: Number(points) || 0,
-    awardedBy, awardedAt: Date.now(), note: note || '',
-  };
-  pointsList.push(entry);
-  set(STORAGE.POINTS, pointsList);
-  return entry;
-}
-function getUserTotalPoints(userId) {
-  const pointsList = getPoints();
-  return pointsList.filter(p => p.userId === userId).reduce((sum, p) => sum + (p.points || 0), 0);
-}
-function getLeaderboard() {
-  const users = getUsersRaw();
-  const pointsList = getPoints();
-  const totals = {};
-  pointsList.forEach(p => { totals[p.userId] = (totals[p.userId] || 0) + (p.points || 0); });
-  return users
-    .map(u => ({ ...( { password: undefined, ...u }), totalPoints: totals[u.id] || 0 }))
-    .filter(u => u.role === 'participant')
-    .sort((a, b) => b.totalPoints - a.totalPoints);
-}
-
-/* ---------- квизы ---------- */
-const QUIZ_QUESTIONS = [
-  { q: 'Что значит QR-код?', options: ['Quick Response', 'Quality Record', 'Quick Record'], correct: 0 },
-  { q: 'Какой формат файла лучше для фото без потери качества?', options: ['JPG', 'PNG', 'MP4'], correct: 1 },
-  { q: 'Что такое стримминг?', options: ['Запись видео', 'Передача видео в реальном времени', 'Монтаж'], correct: 1 },
-  { q: 'Какой цвет у освещения «тёплый свет»?', options: ['Синий', 'Оранжевый/жёлтый', 'Зелёный'], correct: 1 },
-  { q: 'Что означает контент?', options: ['Наполнение/материал', 'Камера', 'Микрофон'], correct: 0 },
-];
-function getQuizQuestions() { return QUIZ_QUESTIONS; }
-function addQuizResult({ userId, score }) {
-  const results = get(STORAGE.QUIZ_RESULTS, []);
-  const entry = { id: 'q' + Date.now(), userId, score, takenAt: Date.now() };
-  results.push(entry);
-  set(STORAGE.QUIZ_RESULTS, results);
-  return entry;
-}
-
-/* ---------- змейка ---------- */
-function addSnakeScore({ userId, score }) {
-  const scores = get(STORAGE.SNAKE_SCORES, []);
-  const entry = { id: 's' + Date.now(), userId, score, playedAt: Date.now() };
-  scores.push(entry);
-  set(STORAGE.SNAKE_SCORES, scores);
-  return entry;
-}
-
-/* ---------- авторизация ---------- */
-async function login(username, password) {
-  const users = getUsersRaw();
-  const user = users.find(u => u.username === username);
-  if (!user) throw new Error('Пользователь не найден');
-  if (!(await verifyPassword(password, user.password))) throw new Error('Неверный пароль');
-  currentUser = { id: user.id, username: user.username, role: user.role, team: user.team, qr: user.qr };
-  sessionStorage.setItem('mf_user', JSON.stringify(currentUser));
-  return currentUser;
-}
-function restoreSession() {
-  try {
-    currentUser = JSON.parse(sessionStorage.getItem('mf_user') || 'null');
-  } catch (e) { currentUser = null; }
-  return currentUser;
-}
-function logout() {
-  currentUser = null;
-  sessionStorage.removeItem('mf_user');
-  location.href = 'index.html';
-}
-function requireRole(allowed) {
-  if (!currentUser) { location.href = 'index.html'; return false; }
-  if (!allowed.includes(currentUser.role)) {
-    alert('Доступ только для: ' + allowed.map(r => ROLE_LABELS[r]).join(', '));
-    location.href = 'index.html';
-    return false;
-  }
-  return true;
-}
-function getCurrentUser() { return currentUser; }
-
-/* ---------- QR ---------- */
-function generateQRCode(containerId, text, size = 220) {
-  const el = document.getElementById(containerId);
+function generateQRCode(containerId, text, size) {
+  var el = document.getElementById(containerId);
   if (!el) return;
   el.innerHTML = '';
   try {
     new QRCode(el, {
       text: text,
-      width: size,
-      height: size,
+      width: size || 220,
+      height: size || 220,
       colorDark: '#000000',
       colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.H,
     });
   } catch (e) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;">QR-библиотека не загружена</div>';
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">QR-библиотека не загружена</div>';
   }
 }
 
-/* ---------- утилиты ---------- */
-function fmtDate(ts) {
-  if (!ts) return '—';
-  return new Date(ts).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-function fmtPoints(n) {
-  return n.toLocaleString('ru-RU');
-}
-function showAlert(elemId, message, type = 'error') {
-  const el = document.getElementById(elemId);
-  if (!el) return;
-  el.textContent = message;
-  el.className = 'alert ' + (type === 'ok' ? 'ok' : '');
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
-}
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+function redirect(page) {
+  window.location.href = page;
+  return null;
 }
 
-function hasUsers() {
-  return get(STORAGE.USERS, []).length > 0;
+/* ---------- фатальная ошибка (нет связи с API) ---------- */
+function showFatal(message) {
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;inset:0;background:#f8fafc;z-index:9999;display:grid;place-items:center;padding:24px;font-family:Arial,sans-serif;';
+  box.innerHTML =
+    '<div style="max-width:460px;text-align:center;background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:28px;">' +
+    '<div style="font-size:2rem;margin-bottom:10px;">📡</div>' +
+    '<h2 style="margin:0 0 10px;color:#0f172a;font-size:1.2rem;">Сервер недоступен</h2>' +
+    '<p style="margin:0 0 18px;color:#475569;font-size:0.95rem;">' + escapeHtml(message || 'Нет связи с сервером.') + '</p>' +
+    '<button id="mfRetry" style="background:#6d5efc;color:#fff;border:0;border-radius:10px;padding:11px 20px;font-weight:700;cursor:pointer;">Повторить</button>' +
+    '</div>';
+  document.body.appendChild(box);
+  document.getElementById('mfRetry').addEventListener('click', function () { window.location.reload(); });
 }
+
+/* ---------- сессия ---------- */
+function getUser() { return __mfState.user; }
+
+function setUser(user) {
+  __mfState.user = user || null;
+  renderHeader();
+}
+
+function renderHeader() {
+  var user = __mfState.user;
+  if (!user) return;
+  var userEl = document.getElementById('headerUser');
+  var roleEl = document.getElementById('headerRole');
+  if (userEl) userEl.textContent = user.username + (user.team ? ' · ' + user.team : '');
+  if (roleEl) {
+    roleEl.className = 'badge ' + user.role;
+    roleEl.textContent = ROLE_LABELS[user.role] || user.role;
+  }
+}
+
+async function init(allowedRoles) {
+  if (!window.MF_API.getToken()) return redirect('index.html');
+
+  var data;
+  try {
+    data = await window.MF_API.request('/auth/me');
+  } catch (err) {
+    if (err.status === 401) {
+      window.MF_API.clearToken();
+      return redirect('index.html');
+    }
+    showFatal(err.message);
+    return null;
+  }
+
+  __mfState.user = data.user;
+  renderHeader();
+
+  if (allowedRoles && allowedRoles.indexOf(data.user.role) === -1) {
+    return redirect(ROLE_PAGES[data.user.role] || 'index.html');
+  }
+
+  return data.user;
+}
+
+async function login(username, password) {
+  var data = await window.MF_API.request('/auth/login', {
+    method: 'POST',
+    body: { username: username, password: password },
+    auth: false,
+  });
+  window.MF_API.setToken(data.token);
+  __mfState.user = data.user;
+  __mfState.tasks = null;
+  return data.user;
+}
+
+function logout() {
+  window.MF_API.clearToken();
+  __mfState.user = null;
+  __mfState.tasks = null;
+  redirect('index.html');
+}
+
+/* ---------- первый запуск ---------- */
+async function bootstrapStatus() {
+  return window.MF_API.request('/auth/bootstrap-status', { auth: false });
+}
+
+async function bootstrapAdmin(payload) {
+  var data = await window.MF_API.request('/auth/bootstrap', {
+    method: 'POST',
+    body: payload,
+    auth: false,
+  });
+  window.MF_API.setToken(data.token);
+  __mfState.user = data.user;
+  return data.user;
+}
+
+/* ---------- пользователи (админ) ---------- */
+async function getUsers() {
+  return (await window.MF_API.request('/users')).users;
+}
+
+async function addUser(payload) {
+  return (await window.MF_API.request('/users', { method: 'POST', body: payload })).user;
+}
+
+async function updateUser(id, payload) {
+  return (await window.MF_API.request('/users/' + encodeURIComponent(id), { method: 'PATCH', body: payload })).user;
+}
+
+async function deleteUser(id) {
+  await window.MF_API.request('/users/' + encodeURIComponent(id), { method: 'DELETE' });
+}
+
+async function lookupByQr(qr) {
+  return (await window.MF_API.request('/users/lookup?qr=' + encodeURIComponent(qr))).user;
+}
+
+/* ---------- задания ---------- */
+async function getTasks(force) {
+  if (!__mfState.tasks || force) {
+    __mfState.tasks = (await window.MF_API.request('/tasks')).tasks;
+  }
+  return __mfState.tasks;
+}
+
+async function addTask(payload) {
+  var task = (await window.MF_API.request('/tasks', { method: 'POST', body: payload })).task;
+  __mfState.tasks = null;
+  return task;
+}
+
+async function updateTask(id, payload) {
+  var task = (await window.MF_API.request('/tasks/' + encodeURIComponent(id), { method: 'PATCH', body: payload })).task;
+  __mfState.tasks = null;
+  return task;
+}
+
+async function deleteTask(id) {
+  await window.MF_API.request('/tasks/' + encodeURIComponent(id), { method: 'DELETE' });
+  __mfState.tasks = null;
+}
+
+/* ---------- очки ---------- */
+async function awardPoints(payload) {
+  return window.MF_API.request('/awards', { method: 'POST', body: payload });
+}
+
+async function getMyPoints() {
+  return window.MF_API.request('/awards/mine');
+}
+
+async function getRecentAwards() {
+  return (await window.MF_API.request('/awards/recent')).entries;
+}
+
+async function getLeaderboard() {
+  return (await window.MF_API.request('/awards/leaderboard')).teams;
+}
+
+async function getDashboard() {
+  return window.MF_API.request('/awards/dashboard');
+}
+
+/* ---------- викторина и змейка ---------- */
+async function getQuiz() {
+  return window.MF_API.request('/quiz/questions');
+}
+
+async function submitQuiz(answers) {
+  return window.MF_API.request('/quiz/submit', { method: 'POST', body: { answers: answers } });
+}
+
+async function saveSnakeScore(score) {
+  return window.MF_API.request('/game/snake', { method: 'POST', body: { score: score } });
+}
+
+/* ---------- настройки ---------- */
+async function getSettings() {
+  return (await window.MF_API.request('/settings')).settings;
+}
+
+async function saveSettings(payload) {
+  return (await window.MF_API.request('/settings', { method: 'PUT', body: payload })).settings;
+}
+
 window.__MF = {
-  STORAGE, ROLE_LABELS, get, set, hashPassword, verifyPassword,
-  getUsers, getUsersRaw, saveUsers, addUser, updateUser, updateUserAsync, deleteUser,
-  getTasks, saveTasks, addTask, updateTask, deleteTask,
-  getPoints, addPoints, getUserTotalPoints, getLeaderboard,
-  getQuizQuestions, addQuizResult, addSnakeScore,
-  login, restoreSession, logout, requireRole, getCurrentUser,
-  generateQRCode, fmtDate, fmtPoints, showAlert, escapeHtml,
-  seedDefaultData, hasUsers,
-};
+  ROLE_LABELS: ROLE_LABELS,
+  ROLE_PAGES: ROLE_PAGES,
 
-// инициализация при загрузке
-// ВАЖНО: синхронно до скриптов страниц, иначе requireRole() в admin/participant/volunteer.js
-// сработает раньше восстановления сессии и произойдёт цикл перенаправлений.
-restoreSession();
+  init: init,
+  login: login,
+  logout: logout,
+  getUser: getUser,
+  setUser: setUser,
+  renderHeader: renderHeader,
+
+  bootstrapStatus: bootstrapStatus,
+  bootstrapAdmin: bootstrapAdmin,
+
+  getUsers: getUsers,
+  addUser: addUser,
+  updateUser: updateUser,
+  deleteUser: deleteUser,
+  lookupByQr: lookupByQr,
+
+  getTasks: getTasks,
+  addTask: addTask,
+  updateTask: updateTask,
+  deleteTask: deleteTask,
+
+  awardPoints: awardPoints,
+  getMyPoints: getMyPoints,
+  getRecentAwards: getRecentAwards,
+  getLeaderboard: getLeaderboard,
+  getDashboard: getDashboard,
+
+  getQuiz: getQuiz,
+  submitQuiz: submitQuiz,
+  saveSnakeScore: saveSnakeScore,
+
+  getSettings: getSettings,
+  saveSettings: saveSettings,
+
+  fmtDate: fmtDate,
+  fmtPoints: fmtPoints,
+  escapeHtml: escapeHtml,
+  showAlert: showAlert,
+  hideAlert: hideAlert,
+  generateQRCode: generateQRCode,
+  showFatal: showFatal,
+};

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Табло очков</title>
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=6">
   <style>
     body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: #f8fafc; }
     .topbar { background: rgba(15,23,42,0.8); backdrop-filter: blur(12px); border-bottom-color: rgba(255,255,255,0.1); }
@@ -20,6 +20,8 @@
     .lb-row.header { color: #94a3b8; }
     .crown { color: #fbbf24; margin-right: 8px; }
     .auto-refresh { position: fixed; top: 14px; right: 14px; font-size: 0.8rem; color: #64748b; font-family: ui-monospace; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); }
+    .stat-line { color: #94a3b8; font-size: 0.95rem; margin-top: 6px; }
+    .stat-line b { color: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -39,6 +41,7 @@
       <div>
         <h2 style="font-size:2.2rem;">🏆 Лидерборд команд</h2>
         <div class="subtitle">Обновляется автоматически. Откройте это окно на большом экране или проекторе.</div>
+        <div class="stat-line" id="totals"></div>
       </div>
       <div style="display:flex;gap:10px;">
         <button class="btn btn-primary" id="btnRefresh">⟳ Обновить сейчас</button>
@@ -59,7 +62,9 @@
     </div>
   </div>
 
-  <script src="app.js?v=5"></script>
-  <script src="dashboard.js?v=2"></script>
+  <script src="config.js?v=6"></script>
+  <script src="api.js?v=6"></script>
+  <script src="app.js?v=6"></script>
+  <script src="dashboard.js?v=6"></script>
 </body>
 </html>
