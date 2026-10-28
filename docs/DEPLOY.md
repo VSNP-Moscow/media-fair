@@ -9,12 +9,17 @@ API и MySQL живут рядом с проектом «Навигатор пе
 |---|---|
 | Код API | `/opt/media-fair` (владелец `navigator`) |
 | Секреты | `/opt/media-fair/.env` (chmod 600) |
-| MySQL | контейнер `media-fair-db`, том `media-fair_mf_db`, порт наружу не открыт |
-| API | контейнер `media-fair-api`, слушает `127.0.0.1:4010` |
+| MySQL | контейнер `media-fair-db-1`, том `media-fair_mf_db`, порт наружу не открыт |
+| API | контейнер `media-fair-api-1`, слушает `127.0.0.1:4010` |
 | Публичный адрес | `https://mf.176.109.108.39.sslip.io` (Caddy → 4010) |
+| Бэкапы | `/home/navigator/backups`, cron 03:10, хранение 14 дней |
 | Табло/фронтенд | GitHub Pages, адрес API в `config.js` |
 
 Порт 4000, контейнер `navigator-app` и сайт `176.109.108.39.sslip.io` не затрагиваются.
+
+Текущее состояние: первый администратор создан, публичная форма «Создать первого
+администратора» закрыта (в базе есть пользователи), тестовые данные удалены.
+Повторно форма появится только после полной очистки таблицы `users`.
 
 ## Обновление кода
 
@@ -42,7 +47,9 @@ DB_USER=mf_app
 DB_PASSWORD=<24+ символов>
 DB_ROOT_PASSWORD=<24+ символов>
 JWT_SECRET=<48+ символов, openssl rand -hex 48>
-CORS_ORIGINS=https://vsnp-moscow.github.io,http://localhost:8080
+# В продакшене — только адрес сайта. Для локальной отладки можно добавить
+# через запятую http://localhost:8080,http://127.0.0.1:8090 и вернуть обратно.
+CORS_ORIGINS=https://vsnp-moscow.github.io
 BIND_ADDR=127.0.0.1
 BIND_PORT=4010
 TRUST_PROXY=true
@@ -88,18 +95,26 @@ docker exec navigator-proxy caddy reload   --config /etc/caddy/Caddyfile
 
 ```bash
 # дамп
-sudo docker exec media-fair-db sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction media_fair' > media_fair-$(date +%F).sql
+sudo docker exec media-fair-db-1 sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction media_fair' > media_fair-$(date +%F).sql
 
 # восстановление
-sudo docker exec -i media-fair-db sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" media_fair' < media_fair-2026-10-28.sql
+sudo docker exec -i media-fair-db-1 sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" media_fair' < media_fair-2026-10-28.sql
 ```
 
 Дампы содержат персональные данные (логины, хэши паролей) — хранить приватно.
 
-Ежедневный бэкап (cron, 03:10):
+Ежедневный бэкап уже настроен на сервере:
 
-```cron
-10 3 * * * cd /opt/media-fair && sudo /usr/bin/docker exec media-fair-db sh -c 'exec mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" --single-transaction media_fair' | gzip > /home/navigator/backups/media_fair-$(date +\%F).sql.gz
+- скрипт `/home/navigator/backups/backup-media-fair.sh` (chmod 700);
+- cron `10 3 * * *` в crontab пользователя `navigator`;
+- дампы `media_fair-YYYY-MM-DD.sql.gz`, хранятся 14 дней;
+- проверить вручную: `/home/navigator/backups/backup-media-fair.sh && ls -la /home/navigator/backups`.
+
+Восстановление из дампа:
+
+```bash
+gunzip -c /home/navigator/backups/media_fair-2026-10-28.sql.gz \
+  | sudo docker exec -i media-fair-db-1 sh -c 'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" media_fair'
 ```
 
 ## Диагностика
