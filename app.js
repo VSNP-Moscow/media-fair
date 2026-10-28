@@ -270,6 +270,6 @@ window.__MF = {
 };
 
 // инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-  restoreSession();
-});
+// ВАЖНО: синхронно до скриптов страниц, иначе requireRole() в admin/participant/volunteer.js
+// сработает раньше восстановления сессии и произойдёт цикл перенаправлений.
+restoreSession();
