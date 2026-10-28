@@ -37,8 +37,11 @@
         <h3>📷 Сканирование QR</h3>
         <div id="scanAlert" class="alert" style="margin-bottom:12px;"></div>
         <div style="border:2px dashed var(--border);border-radius:16px;padding:20px;background:#f8fafc;text-align:center;">
-          <div id="reader" style="width:100%;max-width:420px;margin:0 auto 16px auto;background:#000;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.9rem;">
-            Камера не подключена — используй ручной ввод ниже.
+          <div id="reader" style="width:100%;max-width:420px;margin:0 auto 16px auto;background:#0f172a;border-radius:12px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#e2e8f0;font-size:0.9rem;min-height:150px;">
+            <div style="padding:20px;text-align:center;">
+              <button type="button" class="btn-sm primary" id="btnStartCamera" style="padding:12px 18px;font-size:1rem;">📷 Включить камеру</button>
+              <div class="small" style="margin-top:10px;color:#94a3b8;">Браузер спросит разрешение на камеру. Если кнопка не сработала — введи код вручную.</div>
+            </div>
           </div>
           <div class="small" style="margin-top:8px;">Если камера недоступна — введи код с экрана участника вручную.</div>
         </div>
@@ -98,11 +101,11 @@
     </div>
   </div>
 
-  <script src="config.js?v=7"></script>
-  <script src="api.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="config.js?v=8"></script>
+  <script src="api.js?v=8"></script>
+  <script src="app.js?v=8"></script>
   <!-- html5-qrcode сканер (опционально, требует интернета) -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="window.__mfScannerUnavailable=true;"></script>
-  <script src="volunteer.js?v=7"></script>
+  <script src="volunteer.js?v=8"></script>
 </body>
 </html>

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Участник</title>
   <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 </head>
 <body>
   <header class="topbar">
@@ -27,7 +26,7 @@
     <div class="page-header">
       <div>
         <h2><span class="mark-inline">🎫</span>Твоё место на ярмарке</h2>
-        <div class="subtitle">Покажи QR-код волонтёру на станции, проходи квисты и играй, чтобы заработать очки.</div>
+        <div class="subtitle">Покажи QR-код волонтёру на станции и играй в змейку, чтобы заработать очки.</div>
       </div>
     </div>
 
@@ -63,28 +62,6 @@
       </div>
     </div>
 
-    <!-- Карта -->
-    <div class="card accent-participant" id="mapCard" style="grid-column:1 / -1;">
-      <h3>🗺️ Карта заданий</h3>
-      <p class="small" style="margin-bottom:12px;">Нажми на метку — посмотри задание. Станции отмечай у волонтёра, квисты и змейку проходи ниже.</p>
-      <div id="map"></div>
-      <div id="mapOffline" class="map-offline" style="display:none;">
-        Карта требует интернета (OpenStreetMap). Если офлайн — список заданий ниже.
-      </div>
-      <div id="taskList" class="small" style="margin-top:10px;"></div>
-    </div>
-
-    <!-- Викторина -->
-    <div class="card accent-participant" id="quizCard" style="grid-column:1 / -1;">
-      <h3>🧠 Мини-викторина</h3>
-      <p class="small" style="margin-bottom:14px;">Очки начисляются за лучший результат: каждая новая верная серия ответов добавляет баллы. Накрутить повторами нельзя.</p>
-      <div id="quizContainer"></div>
-      <div class="actions" style="margin-top:12px;">
-        <button class="btn btn-primary" id="btnQuizSubmit" style="width:auto;">Ответить и получить очки</button>
-      </div>
-      <div id="quizResult" style="margin-top:12px;"></div>
-    </div>
-
     <!-- Змейка -->
     <div class="card accent-participant" id="snakeCard" style="grid-column:1 / -1;">
       <h3>🐍 Игра «Змейка»</h3>
@@ -113,12 +90,11 @@
     </div>
   </div>
 
-  <script src="config.js?v=7"></script>
-  <script src="api.js?v=7"></script>
-  <script src="app.js?v=7"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="config.js?v=8"></script>
+  <script src="api.js?v=8"></script>
+  <script src="app.js?v=8"></script>
   <script src="qrcode.min.js?v=2"></script>
-  <script src="snake.js?v=7"></script>
-  <script src="participant.js?v=7"></script>
+  <script src="snake.js?v=8"></script>
+  <script src="participant.js?v=8"></script>
 </body>
 </html>

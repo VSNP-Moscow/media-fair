@@ -182,28 +182,109 @@
   }
 
   /* ---------- камера ---------- */
-  function startCameraScanner() {
-    const Html5Qrcode = window.Html5Qrcode;
-    if (window.__mfScannerUnavailable || !Html5Qrcode) return;
+  function ensureScannerLibrary() {
+    if (window.Html5Qrcode) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
+      script.onload = () => resolve(!!window.Html5Qrcode);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  }
 
+  function scannerMessage(message, withRetry) {
     const reader = $('reader');
+    reader.innerHTML = '';
+
+    const box = document.createElement('div');
+    box.style.cssText = 'padding:20px;text-align:center;color:#e2e8f0;';
+
+    const text = document.createElement('div');
+    text.style.cssText = 'margin-bottom:12px;font-size:0.9rem;';
+    text.textContent = message;
+    box.appendChild(text);
+
+    if (withRetry) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn-sm primary';
+      btn.style.cssText = 'padding:11px 16px;font-size:0.95rem;';
+      btn.textContent = '📷 Попробовать снова';
+      btn.addEventListener('click', startCameraScanner);
+      box.appendChild(btn);
+    }
+
+    reader.appendChild(box);
+  }
+
+  function resetScannerPrompt() {
+    const reader = $('reader');
+    reader.innerHTML = '';
+
+    const box = document.createElement('div');
+    box.style.cssText = 'padding:20px;text-align:center;';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-sm primary';
+    btn.style.cssText = 'padding:12px 18px;font-size:1rem;';
+    btn.textContent = '📷 Включить камеру';
+    btn.addEventListener('click', startCameraScanner);
+
+    const hint = document.createElement('div');
+    hint.className = 'small';
+    hint.style.cssText = 'margin-top:10px;color:#94a3b8;';
+    hint.textContent = 'Браузер спросит разрешение на камеру. Если кнопка не сработала — введи код вручную.';
+
+    box.appendChild(btn);
+    box.appendChild(hint);
+    reader.appendChild(box);
+  }
+
+  async function startCameraScanner() {
+    const reader = $('reader');
+
+    if (!window.Html5Qrcode) {
+      reader.innerHTML = '<div style="padding:18px;color:#e2e8f0;">Загружаю сканер…</div>';
+      await ensureScannerLibrary();
+    }
+
+    const Html5Qrcode = window.Html5Qrcode;
+
+    if (!Html5Qrcode) {
+      scannerMessage('Сканер не загрузился — похоже, нет доступа к интернету. Используйте ручной ввод кода.', true);
+      return;
+    }
+
+    if (scanner) {
+      try { scanner.stop(); } catch (e) { /* уже остановлен */ }
+      scanner = null;
+    }
+
     reader.innerHTML = '';
     const container = document.createElement('div');
     container.id = 'qr-video-container';
+    container.style.width = '100%';
     reader.appendChild(container);
 
     scanner = new Html5Qrcode('qr-video-container', { verbose: false });
+
     scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
       async (decodedText) => {
         try { await scanner.stop(); } catch (e) { /* уже остановлен */ }
-        reader.innerHTML = '<div style="padding:14px;color:#e2e8f0;">Код считан. Нажмите «Начать камеру» для следующего участника.</div>';
+        scanner = null;
+        reader.innerHTML = '<div style="padding:18px;color:#e2e8f0;">Код считан. Ищу участника…</div>';
         await lookup(decodedText);
+        resetScannerPrompt();
       },
       () => { /* ошибки распознавания кадра игнорируем */ }
     ).catch((err) => {
-      reader.innerHTML = '<div style="padding:14px;color:var(--text-muted);">Камера недоступна. Используйте ручной ввод.</div>';
+      scanner = null;
+      const reason = err && err.message ? String(err.message) : 'браузер не дал доступ к камере';
+      scannerMessage('Камера недоступна: ' + reason + '. Введите код вручную.', true);
       console.warn('QR scanner start failed', err);
     });
   }
@@ -235,7 +316,7 @@
       return;
     }
 
-    startCameraScanner();
+    resetScannerPrompt();
     setInterval(() => {
       refreshRecent().catch(() => {});
       refreshEventState();
