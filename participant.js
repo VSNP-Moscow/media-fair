@@ -115,6 +115,6 @@
     setTimeout(() => { snakeMsg.textContent = ''; }, 3000);
   });
 
-  window.addEventListener('storage', () => updatePointsUI);
+  window.addEventListener('storage', () => updatePointsUI());
   updatePointsUI();
 })();
