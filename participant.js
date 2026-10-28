@@ -13,6 +13,7 @@
   let eventActive = true;
   let surveyQuestions = [];
   let surveySubmitted = false;
+  let surveySignature = '';
 
   /* ---------- состояние мероприятия ---------- */
   function applyEventState(active) {
@@ -47,11 +48,35 @@
   }
 
   /* ---------- опросник ---------- */
+  function signatureOf(questions) {
+    return questions.map((q) => q.id + '|' + q.text + '|' + q.options.join('~')).join('||');
+  }
+
   async function loadSurvey() {
     const data = await MF.getSurvey();
     surveyQuestions = data.questions || [];
     surveySubmitted = !!data.submitted;
+    surveySignature = signatureOf(surveyQuestions);
     renderSurvey();
+  }
+
+  /* Пока участник не начал отвечать, подхватываем изменения конструктора. */
+  async function refreshSurveyIfNeeded() {
+    if (!eventActive || surveySubmitted) return;
+    if (document.querySelector('#surveyFields input[type="radio"]:checked')) return;
+
+    try {
+      const data = await MF.getSurvey();
+      const next = data.questions || [];
+      const nextSignature = signatureOf(next);
+
+      if (nextSignature !== surveySignature || !!data.submitted !== surveySubmitted) {
+        surveyQuestions = next;
+        surveySubmitted = !!data.submitted;
+        surveySignature = nextSignature;
+        renderSurvey();
+      }
+    } catch (e) { /* сеть недоступна — не мешаем заполнять */ }
   }
 
   function renderSurvey() {
@@ -232,6 +257,7 @@
     pointsTimer = setInterval(() => {
       loadPoints().catch(() => {});
       refreshEventState().catch(() => {});
+      refreshSurveyIfNeeded().catch(() => {});
     }, 15000);
     window.addEventListener('beforeunload', () => clearInterval(pointsTimer));
   })();
