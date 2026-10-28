@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Табло очков</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: #f8fafc; }
+    .topbar { background: rgba(15,23,42,0.8); backdrop-filter: blur(12px); border-bottom-color: rgba(255,255,255,0.1); }
+    .lb-row { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); color: #f1f5f9; }
+    .lb-row:hover { background: rgba(255,255,255,0.12); }
+    .lb-row.points { color: #22c55e; }
+    .lb-row.top1 { background: linear-gradient(90deg, rgba(245,158,11,0.25), rgba(15,23,42,0.6)); border-color: rgba(245,158,11,0.45); }
+    .lb-row.top2 { background: linear-gradient(90deg, rgba(229,231,235,0.15), rgba(15,23,42,0.6)); border-color: rgba(229,231,235,0.35); }
+    .lb-row.top3 { background: linear-gradient(90deg, rgba(217,119,6,0.22), rgba(15,23,42,0.6)); border-color: rgba(217,119,6,0.4); }
+    .lb-row.top1 .points { color: #fbbf24; }
+    .lb-row.top2 .points { color: #e5e7eb; }
+    .lb-row.top3 .points { color: #d97706; }
+    .lb-row.header { color: #94a3b8; }
+    .crown { color: #fbbf24; margin-right: 8px; }
+    .auto-refresh { position: fixed; top: 14px; right: 14px; font-size: 0.8rem; color: #64748b; font-family: ui-monospace; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <div class="mark" style="background:linear-gradient(135deg,var(--dashboard),var(--success));">🏆</div>
+        <span style="font-size:1.4rem;">Медиаярмарка</span>
+        <span style="font-weight:500;font-size:0.95rem;color:var(--text-muted);margin-left:12px;">· Табло очков команд</span>
+      </div>
+      <div class="auto-refresh" id="autoRefresh">Автообновление: вкл.</div>
+    </div>
+  </header>
+
+  <div class="container" style="padding-top:34px;padding-bottom:60px;">
+    <div class="page-header" style="margin-bottom:26px;">
+      <div>
+        <h2 style="font-size:2.2rem;">🏆 Лидерборд команд</h2>
+        <div class="subtitle">Обновляется автоматически. Откройте это окно на большом экране или проекторе.</div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" id="btnRefresh">⟳ Обновить сейчас</button>
+        <button class="btn btn-secondary" id="btnPrint">🖨 Распечатать / PDF</button>
+      </div>
+    </div>
+
+    <div class="leaderboard" id="leaderboard">
+      <div class="lb-row header">
+        <div style="font-weight:800">Место</div>
+        <div>Команда</div>
+        <div style="text-align:right">Участников</div>
+        <div style="text-align:right">Очков</div>
+      </div>
+    </div>
+    <div class="refresh-hint" style="margin-top:14px; color:var(--text-muted);">
+      Последнее обновление: <span id="lastUpdate" style="font-family:ui-monospace;color:var(--dashboard);">—</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

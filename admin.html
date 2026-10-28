@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Администратор</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <div class="mark">👑</div>
+        <span>Медиаярмарка <span style="font-weight:500;font-size:0.9rem;color:var(--text-muted);">· Администратор</span></span>
+      </div>
+      <div class="user-info">
+        <span class="badge admin" id="headerRole">Администратор</span>
+        <span id="headerUser" style="color:var(--text-muted);font-size:0.9rem;"></span>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container" style="padding-top:26px;padding-bottom:40px;">
+    <div class="page-header">
+      <div>
+        <h2><span class="mark-inline">👑</span>Панель администратора</h2>
+        <div class="subtitle">Создавайте пользователей, назначайте задания и следите за очками команд.</div>
+      </div>
+      <button class="btn btn-primary" id="btnRefresh" style="width:auto;">⟳ Обновить всё</button>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Пользователи -->
+      <div class="card accent-admin">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3>👥 Пользователи</h3>
+          <button class="btn-sm primary" id="btnOpenAddUser">+ Добавить</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Логин</th><th>Роль</th><th>Команда</th><th>QR-код</th><th>Очков</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Задания -->
+      <div class="card accent-admin">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3>📋 Задания</h3>
+          <button class="btn-sm primary" id="btnOpenAddTask">+ Добавить</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Название</th><th>Тип</th><th>Очки</th><th>Координаты</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="tasksTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Табло кратко -->
+      <div class="card accent-dashboard" style="grid-column:1 / -1;">
+        <h3>🏆 Табло команд (кратко)</h3>
+        <div class="leaderboard" id="adminLeaderboard"></div>
+        <div class="refresh-hint">Полноэкранное табло: <a href="dashboard.html" target="_blank" style="color:var(--primary);font-weight:700;text-decoration:none;">открыть в новом окне ↗</a></div>
+      </div>
+    </div>
+
+    <!-- Модалка добавления пользователя -->
+    <div class="modal-overlay" id="addUserModal">
+      <div class="modal">
+        <div class="close" id="closeAddUser">✕</div>
+        <h3>Новый пользователь</h3>
+        <div id="addUserAlert" class="alert"></div>
+        <form id="addUserForm">
+          <div class="form-group"><label>Логин</label><input id="auUsername" type="text" required></div>
+          <div class="form-group"><label>Пароль</label><input id="auPassword" type="password" required></div>
+          <div class="form-group"><label>Роль</label><select id="auRole">
+            <option value="participant">Участник</option>
+            <option value="volunteer">Волонтёр</option>
+            <option value="admin">Администратор</option>
+          </select></div>
+          <div class="form-group"><label>Команда</label><input id="auTeam" type="text" placeholder="например, Команда «Медиа»"></div>
+          <div class="actions" style="margin-top:14px;">
+            <button type="button" class="btn-sm" id="btnCancelAddUser">Отмена</button>
+            <button type="submit" class="btn-sm primary">Создать</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Модалка добавления задания -->
+    <div class="modal-overlay" id="addTaskModal">
+      <div class="modal">
+        <div class="close" id="closeAddTask">✕</div>
+        <h3>Новое задание</h3>
+        <div id="addTaskAlert" class="alert"></div>
+        <form id="addTaskForm">
+          <div class="form-group"><label>Название</label><input id="atTitle" type="text" required></div>
+          <div class="form-group"><label>Описание</label><textarea id="atDesc" rows="2" required></textarea></div>
+          <div class="form-row">
+            <div class="form-group"><label>Тип</label><select id="atType">
+              <option value="station">Станция (волонтёр)</option>
+              <option value="quiz">Викторина</option>
+              <option value="game">Игра (змейка)</option>
+            </select></div>
+            <div class="form-group"><label>Базовые очки</label><input id="atPoints" type="number" value="30" min="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Широта</label><input id="atLat" type="number" step="any" value="55.7538"></div>
+            <div class="form-group"><label>Долгота</label><input id="atLng" type="number" step="any" value="37.6218"></div>
+          </div>
+          <div class="actions" style="margin-top:14px;">
+            <button type="button" class="btn-sm" id="btnCancelAddTask">Отмена</button>
+            <button type="submit" class="btn-sm primary">Создать</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

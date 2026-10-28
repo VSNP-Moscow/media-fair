@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Участник</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <div class="mark">🎫</div>
+        <span>Медиаярмарка <span style="font-weight:500;font-size:0.9rem;color:var(--text-muted);">· Участник</span></span>
+      </div>
+      <div class="user-info">
+        <span class="badge participant" id="headerRole">Участник</span>
+        <span id="headerUser" style="color:var(--text-muted);font-size:0.9rem;"></span>
+        <div id="pointsHeader" style="font-weight:800;color:var(--dashboard);font-family:ui-monospace;">0 очков</div>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container" style="padding-top:26px;padding-bottom:40px;">
+    <div class="page-header">
+      <div>
+        <h2><span class="mark-inline">🎫</span>Твоё место на ярмарке</h2>
+        <div class="subtitle">Покажи QR-код волонтёру на станции, проходи квисты и играй, чтобы заработать очки.</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- QR -->
+      <div class="card accent-participant">
+        <h3>📇 Твой QR-код</h3>
+        <div class="qr-wrap">
+          <div class="qr-canvas" id="qrContainer"></div>
+          <div class="qr-info">
+            <div class="small">Покажи этот экран волонтёру на станции</div>
+            <div class="qr-code-text" id="qrText">—</div>
+          </div>
+        </div>
+        <div style="font-family:ui-monospace;font-size:0.85rem;color:var(--muted);margin-top:6px;">Код статичный — он не меняется. Волонтёр сканирует его и начислит баллы твоей команде.</div>
+      </div>
+
+      <!-- Мои очки -->
+      <div class="card accent-participant">
+        <h3>💰 Мои очки</h3>
+        <div style="font-size:2.6rem;font-weight:800;color:var(--dashboard);font-family:ui-monospace;" id="myPoints">0</div>
+        <div class="small">Всего заработано на табло</div>
+        <div class="table-wrap" style="margin-top:14px;">
+          <table style="font-size:0.85rem;">
+            <thead>
+              <tr><th style="text-align:left">Источник</th><th style="text-align:right">Очки</th><th style="text-align:left">Когда</th></tr>
+            </thead>
+            <tbody id="myPointsHistory"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Карта -->
+    <div class="card accent-participant" style="grid-column:1 / -1;">
+      <h3>🗺️ Карта заданий</h3>
+      <p class="small" style="margin-bottom:12px;">Нажми на метку — посмотри задание. Станции отмечай у волонтёра, квисты и змейку проходи ниже.</p>
+      <div id="map"></div>
+      <div id="mapOffline" class="map-offline" style="display:none;">
+        Карта требует интернета (OpenStreetMap). Если офлайн — список заданий ниже.
+      </div>
+    </div>
+
+    <!-- Викторина -->
+    <div class="card accent-participant" style="grid-column:1 / -1;">
+      <h3>🧠 Мини-викторина</h3>
+      <p class="small" style="margin-bottom:14px;">Ответь на вопросы — за каждый верный ответ получишь очки. Можно проходить повторно.</p>
+      <div id="quizContainer"></div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn btn-primary" id="btnQuizSubmit" style="width:auto;">Ответить и получить очки</button>
+      </div>
+      <div id="quizResult" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Змейка -->
+    <div class="card accent-participant" style="grid-column:1 / -1;">
+      <h3>🐍 Игра «Змейка»</h3>
+      <p class="small" style="margin-bottom:12px;">Управляй змейкой, ешь еду. Каждое очко в игры = 1 очко на табло. Лучший результат сохраняется.</p>
+      <div class="snake-wrap">
+        <canvas id="snakeCanvas" width="340" height="340"></canvas>
+        <div class="snake-stats">
+          <span>Очки: <b id="snakeScore">0</b></span>
+          <span>Рекорд: <b id="snakeBest">0</b></span>
+        </div>
+        <div class="snake-controls">
+          <div></div>
+          <button class="ctrl-btn" data-key="ArrowUp">▲</button>
+          <div></div>
+          <button class="ctrl-btn" data-key="ArrowLeft">◀</button>
+          <button class="ctrl-btn" data-key="ArrowDown">▼</button>
+          <button class="ctrl-btn" data-key="ArrowRight">▶</button>
+          <div></div>
+        </div>
+        <div class="actions" style="margin-top:10px;gap:10px;">
+          <button class="btn-sm primary" id="btnSnakeStart">Старт / Сброс</button>
+          <button class="btn-sm" id="btnSnakeSave">Сохранить очки</button>
+        </div>
+        <div id="snakeMsg" class="small" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
+  <script src="snake.js"></script>
+  <script src="participant.js"></script>
+</body>
+</html>
