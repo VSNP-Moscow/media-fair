@@ -153,8 +153,6 @@
           if (user.role !== selectedRole) {
             throw new Error('Выбранная роль не совпадает с учётной записью ("' + window.__MF.ROLE_LABELS[user.role] + '").');
           }
-            throw new Error('Выбранная роль не совпадает с учётной записью ("' + window.__MF.ROLE_LABELS[user.role] + '").');
-          }
           const target = { admin: 'admin.html', participant: 'participant.html', volunteer: 'volunteer.html' }[user.role];
           location.href = target;
         } catch (err) {
