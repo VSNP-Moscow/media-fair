@@ -232,7 +232,7 @@ tr:hover td { background: var(--surface-hover); }
 
 /* ---------- Змейка ---------- */
 .snake-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-#snakeCanvas { background: #020617; border: 2px solid var(--border); border-radius: 12px; image-rendering: pixelated; box-shadow: var(--shadow); }
+#snakeCanvas { background: #020617; border: 2px solid var(--border); border-radius: 12px; image-rendering: pixelated; box-shadow: var(--shadow); width: min(340px, calc(100vw - 64px)); height: auto; aspect-ratio: 1 / 1; }
 .snake-stats { display: flex; gap: 24px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95rem; font-weight: 700; color: var(--text); }
 .snake-stats span { color: var(--text-muted); }
 .snake-controls { display: grid; grid-template-columns: repeat(3, 56px); gap: 10px; justify-content: center; }
@@ -318,9 +318,9 @@ tr:hover td { background: var(--surface-hover); }
 
   #map { height: 260px; }
 
-  #snakeCanvas { width: 260px; height: 260px; }
-  .snake-controls { grid-template-columns: repeat(3, 52px); gap: 8px; }
-  .ctrl-btn { width: 52px; height: 52px; font-size: 1.3rem; }
+  #snakeCanvas { width: min(260px, calc(100vw - 72px)); }
+  .snake-controls { grid-template-columns: repeat(3, 56px); gap: 8px; }
+  .ctrl-btn { width: 56px; height: 56px; font-size: 1.3rem; }
 
   .lb-row { grid-template-columns: 44px 1fr 110px 95px; gap: 10px; padding: 12px 14px; font-size: 0.85rem; }
   .lb-row.header { padding: 10px 14px; }

@@ -78,6 +78,26 @@ const Snake = (function(){
   document.querySelectorAll('.ctrl-btn').forEach(b => b.addEventListener('click', () => setDir(b.dataset.key)));
   btnStart.addEventListener('click', reset);
 
+  /* свайпы пальцем по канвасу (телефон/планшет) */
+  let touchX = null, touchY = null;
+  canvas.style.touchAction = 'none';
+  canvas.addEventListener('touchstart', (e) => {
+    const t = e.changedTouches[0];
+    touchX = t.clientX; touchY = t.clientY;
+    e.preventDefault();
+  }, { passive: false });
+  canvas.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+  canvas.addEventListener('touchend', (e) => {
+    if (touchX === null) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchX, dy = t.clientY - touchY;
+    touchX = touchY = null;
+    const absX = Math.abs(dx), absY = Math.abs(dy);
+    if (Math.max(absX, absY) < 24) return; // слишком короткий жест — вероятно, тап
+    if (absX > absY) setDir(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+    else setDir(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+  });
+
   return {
     getScore: () => score,
     isRunning: () => running,
