@@ -30,9 +30,9 @@
       const rows = data.teams || [];
 
       let html = '<div class="lb-row header">' +
-        '<div style="font-weight:800">Место</div>' +
+        '<div style="font-weight:800" title="Место" aria-label="Место">№</div>' +
         '<div>Команда</div>' +
-        '<div style="text-align:right">Участников</div>' +
+        '<div style="text-align:right">Участн.</div>' +
         '<div style="text-align:right">Очков</div></div>';
 
       if (rows.length === 0) {

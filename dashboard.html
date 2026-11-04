@@ -18,6 +18,7 @@
     .lb-row.top2 .points { color: #e5e7eb; }
     .lb-row.top3 .points { color: #d97706; }
     .lb-row.header { color: #94a3b8; }
+    .lb-row.header > div { white-space: nowrap; overflow-wrap: normal; word-break: normal; }
     .crown { color: #fbbf24; margin-right: 8px; }
     .auto-refresh { position: fixed; top: 14px; right: 14px; font-size: 0.8rem; color: #64748b; font-family: ui-monospace; background: rgba(255,255,255,0.08); padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); }
     .stat-line { color: #94a3b8; font-size: 0.95rem; margin-top: 6px; }
@@ -52,9 +53,9 @@
 
     <div class="leaderboard" id="leaderboard">
       <div class="lb-row header">
-        <div style="font-weight:800">Место</div>
+        <div style="font-weight:800" title="Место" aria-label="Место">№</div>
         <div>Команда</div>
-        <div style="text-align:right">Участников</div>
+        <div style="text-align:right">Участн.</div>
         <div style="text-align:right">Очков</div>
       </div>
     </div>
@@ -66,6 +67,6 @@
   <script src="config.js?v=11"></script>
   <script src="api.js?v=18"></script>
   <script src="app.js?v=18"></script>
-  <script src="dashboard.js?v=15"></script>
+  <script src="dashboard.js?v=16"></script>
 </body>
 </html>
