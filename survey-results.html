@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Результаты опросника</title>
+  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="event-theme.css?v=2">
+  <style>
+    .results-main { padding-top:26px; padding-bottom:40px; }
+    .results-toolbar { display:flex; gap:8px; flex-wrap:wrap; }
+    .results-toolbar a { display:inline-flex; align-items:center; text-decoration:none; }
+    .results-summary { display:flex; gap:16px 32px; flex-wrap:wrap; margin-bottom:24px; }
+    .results-summary strong { display:block; font-size:1.7rem; font-variant-numeric:tabular-nums; }
+    .results-list { display:grid; gap:20px; }
+    .result-card h3 { margin-bottom:8px; }
+    .result-card .small { margin-bottom:14px; }
+    .result-option { margin-top:16px; }
+    .result-option-label { display:flex; justify-content:space-between; gap:16px; overflow-wrap:anywhere; }
+    .result-option-label b { flex-shrink:0; font-variant-numeric:tabular-nums; }
+    .result-bar { height:10px; margin-top:7px; background:var(--surface-hover); border:1px solid var(--border); border-radius:3px; overflow:hidden; }
+    .result-bar-fill { height:100%; background:var(--primary); }
+    .result-answer { padding:16px 0; border-top:1px solid var(--border); break-inside:avoid; }
+    .result-answer p { margin-top:8px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    #resultsUpdated { margin:16px 0; }
+    @media (max-width:600px) {
+      .results-toolbar { width:100%; }
+      .results-toolbar > * { flex:1 1 auto; justify-content:center; }
+      .result-option-label { flex-wrap:wrap; gap:4px 12px; }
+    }
+    @media print {
+      body { background:white !important; color:black !important; }
+      .topbar, .results-toolbar, #resultsAlert { display:none !important; }
+      .container { max-width:none; padding:0; }
+      .results-main { padding:0; }
+      .page-header { margin-bottom:16px; padding:0 0 12px; }
+      .card { box-shadow:none; background:white; border-color:#aaa; padding:16px; }
+      .result-option { break-inside:avoid; }
+      .result-card h3 { break-after:avoid; }
+      .result-bar { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+      .results-list { display:block; }
+      .result-card { margin-bottom:20px; }
+    }
+  </style>
+</head>
+<body class="admin-page">
+  <header class="topbar">
+    <div class="container">
+      <div class="brand"><div class="mark" aria-hidden="true">М</div><span>Медиаярмарка</span></div>
+      <div class="user-info">
+        <span class="badge admin" id="headerRole">Администратор</span>
+        <span id="headerUser"></span>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+  </header>
+  <main class="container results-main">
+    <div class="page-header">
+      <div>
+        <h2>Результаты опросника</h2>
+        <div class="subtitle">Распределение ответов и отзывы участников. Данные обновляются автоматически каждые 30 секунд.</div>
+      </div>
+      <nav class="results-toolbar" aria-label="Действия с результатами">
+        <a class="btn-sm" href="admin.html">К администратору</a>
+        <button class="btn-sm" id="btnRefreshResults" type="button">Обновить</button>
+        <button class="btn-sm primary" id="btnExportResults" type="button">Скачать Excel</button>
+        <button class="btn-sm" id="btnPrintResults" type="button">Печать</button>
+      </nav>
+    </div>
+    <div id="resultsAlert" class="alert" role="alert"></div>
+    <section class="card results-summary" aria-label="Сводка опросника">
+      <div><strong id="resultsQuestionCount">—</strong><span class="small">Вопросов</span></div>
+      <div><strong id="resultsResponses">—</strong><span class="small">Ответили</span></div>
+      <div><strong id="resultsParticipants">—</strong><span class="small">Всего участников</span></div>
+    </section>
+    <p class="small" id="resultsUpdated" role="status">Загружаем результаты…</p>
+    <div id="resultsQuestions" class="results-list" aria-busy="true"></div>
+    <noscript><p>Включите JavaScript, чтобы загрузить результаты опросника.</p></noscript>
+  </main>
+  <script src="config.js?v=17"></script>
+  <script src="api.js?v=17"></script>
+  <script src="app.js?v=17"></script>
+  <script src="survey-results.js?v=17"></script>
+</body>
+</html>

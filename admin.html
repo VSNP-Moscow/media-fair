@@ -61,11 +61,15 @@
           <div class="actions" style="margin-top:0;flex-wrap:wrap;">
             <span class="badge" id="surveyStatus" role="status">Проверяем состояние…</span>
             <button class="btn-sm" id="btnToggleSurvey" disabled>Открыть опросник</button>
+            <a class="btn-sm" href="survey-results.html" style="display:inline-flex;align-items:center;text-decoration:none;">Открыть результаты</a>
             <button class="btn-sm primary" id="btnAddQuestion">+ Добавить вопрос</button>
           </div>
         </div>
         <div id="surveyAlert" class="alert" style="margin-top:12px;"></div>
-        <div id="surveyQuestions" class="survey-list"></div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;padding:10px 0;font-weight:650;">Конструктор вопросов</summary>
+          <div id="surveyQuestions" class="survey-list"></div>
+        </details>
       </div>
 
       <!-- Пользователи -->
@@ -215,11 +219,11 @@
   </div>
 
   <script src="config.js?v=11"></script>
-  <script src="api.js?v=16"></script>
-  <script src="app.js?v=11"></script>
+  <script src="api.js?v=17"></script>
+  <script src="app.js?v=17"></script>
   <script src="team-form.js?v=11"></script>
   <script src="qrcode.min.js?v=11"></script>
   <script src="print-qr.js?v=12"></script>
-  <script src="admin.js?v=16"></script>
+  <script src="admin.js?v=17"></script>
 </body>
 </html>

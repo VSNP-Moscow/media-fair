@@ -354,6 +354,7 @@ window.__MF = {
   getSurvey: getSurvey,
   submitSurvey: submitSurvey,
   getSurveyResults: getSurveyResults,
+  exportSurveyResults: function () { return window.MF_API.requestBlob('/survey/export.xlsx'); },
   addSurveyQuestion: addSurveyQuestion,
   updateSurveyQuestion: updateSurveyQuestion,
   deleteSurveyQuestion: deleteSurveyQuestion,

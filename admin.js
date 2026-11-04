@@ -19,7 +19,6 @@
   let users = [];
   let tasks = [];
   let surveyQuestions = [];
-  let surveyTotals = { totalParticipants: 0, responses: 0 };
   let editingUserId = null;
   let editingTaskId = null;
   let editingQuestionId = null;
@@ -61,19 +60,15 @@
 
   /* ---------- опросник ---------- */
   async function loadSurvey() {
-    const results = await MF.getSurveyResults();
-    surveyQuestions = results.questions || [];
-    surveyTotals = { totalParticipants: results.totalParticipants, responses: results.responses };
+    const survey = await MF.getSurvey();
+    surveyQuestions = survey.questions || [];
     renderSurvey();
   }
 
   function renderSurvey() {
     const box = $('surveyQuestions');
     const summary = $('surveySummary');
-    const total = surveyTotals.totalParticipants || 0;
-    const answered = surveyTotals.responses || 0;
-
-    summary.textContent = 'Вопросов: ' + surveyQuestions.length + ' · Ответили: ' + answered + ' из ' + total + ' участников';
+    summary.textContent = 'Вопросов: ' + surveyQuestions.length + ' · Статистика и ответы — на отдельной странице результатов.';
 
     if (surveyQuestions.length === 0) {
       box.innerHTML = '<div class="empty" style="padding:20px;">Вопросов пока нет. Нажмите «+ Добавить вопрос» — он появится у участников, когда опросник открыт (независимо от мероприятия).</div>';
@@ -81,30 +76,17 @@
     }
 
     box.innerHTML = surveyQuestions.map((question, index) => {
-      const options = question.type === 'text'
-        ? (question.textAnswers || []).map((answer) =>
-          '<div class="survey-q"><b>' + esc(answer.team || answer.username || 'Команда без названия') + '</b>' +
-          '<div class="small">' + esc(answer.username || '') + (answer.submittedAt ? ' · ' + esc(MF.fmtDate(answer.submittedAt)) : '') + '</div>' +
-          '<div style="margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere;">' + esc(answer.text) + '</div></div>'
-        ).join('') || '<div class="small">Текстовых ответов пока нет.</div>'
-        : (question.options || []).map((option, optionIndex) => {
-          const count = question.counts[optionIndex] || 0;
-          const denominator = question.answered;
-          const percent = denominator > 0 ? Math.round((count / denominator) * 100) : 0;
-          return '<div class="survey-option"><span>' + esc(option) + '</span><b>' + count + ' · ' + percent + '%</b></div>';
-        }).join('');
+      const typeLabel = { choice: 'Один вариант', multiple: 'Несколько вариантов', text: 'Свободный текст' }[question.type] || 'Вопрос';
 
       return '<div class="survey-q">' +
         '<div class="survey-q-head">' +
           '<div><b>' + (index + 1) + '. ' + esc(question.text) + '</b>' +
-          '<div class="small" style="margin-top:4px;">Ответили: ' + question.answered + ' из ' + answered +
-          (question.type === 'multiple' ? ' · Несколько вариантов; % от ответивших на вопрос, сумма может быть больше 100%' : '') + '</div></div>' +
+          '<div class="small" style="margin-top:4px;">' + typeLabel + '</div></div>' +
           '<div class="actions" style="margin-top:0;">' +
             '<button class="btn-sm" data-action="edit" data-id="' + esc(question.id) + '">Ред.</button>' +
             '<button class="btn-sm danger" data-action="delete" data-id="' + esc(question.id) + '">Удалить</button>' +
           '</div>' +
         '</div>' +
-        '<div class="survey-options">' + options + '</div>' +
       '</div>';
     }).join('');
   }

@@ -6,6 +6,7 @@ const db = require('../db');
 const events = require('../event');
 const { HttpError, ah, str, idOf } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
+const { buildXlsx } = require('../xlsx');
 
 const router = express.Router();
 
@@ -197,6 +198,35 @@ router.get('/results', requireAuth, requireRole('admin'), ah(async (req, res) =>
     responses: responses.length,
     questions: stats,
   });
+}));
+
+/* ---------- выгрузка ответов: только администратор ---------- */
+router.get('/export.xlsx', requireAuth, requireRole('admin'), ah(async (req, res) => {
+  const questions = await readQuestions();
+  const responses = await db.query(`SELECT r.answers, r.submitted_at, u.username, u.team
+    FROM survey_responses r JOIN users u ON u.id = r.user_id ORDER BY r.submitted_at DESC`);
+  const dateFormat = new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow',
+  });
+  const rows = [['Команда', 'Логин', 'Дата ответа (Москва)', ...questions.map((q) => q.text)]];
+  responses.forEach((response) => {
+    const answers = parseObject(response.answers);
+    const values = questions.map((question) => {
+      const answer = answers[question.id];
+      if (answer === undefined) return 'Нет ответа';
+      if (question.type === 'text') return typeof answer === 'string' ? answer : 'Нет ответа';
+      const indices = question.type === 'multiple' ? (Array.isArray(answer) ? answer : []) : [answer];
+      return indices.filter((index) => Number.isInteger(index) && question.options[index] !== undefined)
+        .map((index) => question.options[index]).join('; ');
+    });
+    rows.push([response.team || response.username, response.username,
+      dateFormat.format(new Date(Number(response.submitted_at))), ...values]);
+  });
+  const buffer = buildXlsx({ sheetName: 'Ответы на опрос', columns: [30, 24, 24, ...questions.map(() => 45)], rows });
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="media-fair-survey-results.xlsx"');
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.send(buffer);
 }));
 
 /* ---------- конструктор: создание вопроса ---------- */

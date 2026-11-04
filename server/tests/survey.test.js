@@ -35,6 +35,7 @@ function harness(questions, responses = []) {
     express: { Router: () => router },
     crypto: require('node:crypto'),
     '../db': db,
+    '../xlsx': require('../src/xlsx'),
     '../event': { isSurveyOpen: async () => true },
     '../auth': { requireAuth: () => {}, requireRole: () => () => {} },
     '../util': {
