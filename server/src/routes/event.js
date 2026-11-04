@@ -2,7 +2,7 @@
 
 const express = require('express');
 const db = require('../db');
-const { ah } = require('../util');
+const { ah, HttpError } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
 const events = require('../event');
 
@@ -18,6 +18,7 @@ router.get('/', ah(async (req, res) => {
   res.json({
     active: flags.active,
     registrationOpen: flags.registrationOpen,
+    surveyOpen: flags.surveyOpen,
     participants: Number(row.participants),
     volunteers: Number(row.volunteers),
     serverTime: Date.now(),
@@ -26,15 +27,23 @@ router.get('/', ah(async (req, res) => {
 
 /** Переключение мероприятия и регистрации — только администратор. */
 router.put('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
+  ['active', 'registrationOpen', 'surveyOpen'].forEach((key) => {
+    if (req.body[key] !== undefined && typeof req.body[key] !== 'boolean') {
+      throw new HttpError(400, key + ': требуется true или false');
+    }
+  });
   if (req.body.active !== undefined) {
     await events.setFlag(events.KEY_ACTIVE, Boolean(req.body.active));
   }
   if (req.body.registrationOpen !== undefined) {
     await events.setFlag(events.KEY_REGISTER, Boolean(req.body.registrationOpen));
   }
+  if (req.body.surveyOpen !== undefined) {
+    await events.setFlag(events.KEY_SURVEY, Boolean(req.body.surveyOpen));
+  }
 
   const flags = await events.readFlags();
-  res.json({ active: flags.active, registrationOpen: flags.registrationOpen });
+  res.json({ active: flags.active, registrationOpen: flags.registrationOpen, surveyOpen: flags.surveyOpen });
 }));
 
 module.exports = router;

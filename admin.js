@@ -6,6 +6,12 @@
   const $ = (id) => document.getElementById(id);
   const MF = window.__MF;
   const esc = MF.escapeHtml;
+  const memberForm = window.MF_TEAM_FORM($('auMembers'), 'admin-member');
+  const legacyRosterHint = document.createElement('p');
+  legacyRosterHint.className = 'small';
+  legacyRosterHint.textContent = 'У этой учётной записи ещё нет состава команды. Заполните его при возможности (1–3 участника). Пока поля пусты, можно сохранить другие изменения.';
+  $('auMembers').prepend(legacyRosterHint);
+  let allowEmptyRoster = false;
 
   const TYPE_LABELS = { station: 'Станция', quiz: 'Викторина', game: 'Игра' };
   const TYPE_COLORS = { station: 'var(--admin)', quiz: 'var(--participant)', game: 'var(--volunteer)' };
@@ -19,7 +25,7 @@
   let editingQuestionId = null;
 
   /* ---------- мероприятие ---------- */
-  let eventState = { active: true, registrationOpen: true };
+  let eventState = { active: true, registrationOpen: true, surveyOpen: false };
 
   async function loadEvent() {
     eventState = await MF.getEventStatus();
@@ -32,19 +38,24 @@
     const hint = $('eventHint');
 
     $('chkRegistration').checked = !!eventState.registrationOpen;
+    const surveyBtn = $('btnToggleSurvey');
+    surveyBtn.disabled = false;
+    surveyBtn.textContent = eventState.surveyOpen ? 'Закрыть опросник' : 'Открыть опросник';
+    surveyBtn.setAttribute('aria-pressed', String(!!eventState.surveyOpen));
+    $('surveyStatus').textContent = eventState.surveyOpen ? 'Опросник открыт' : 'Опросник закрыт';
 
     if (eventState.active) {
       badge.textContent = '● Мероприятие идёт';
       badge.style.cssText = 'background:#f0fdf4;color:#16a34a;border-color:#bbf7d0;';
       btn.textContent = '⏹ Остановить мероприятие';
       btn.style.cssText = 'width:auto;background:var(--danger);border-color:transparent;color:#fff;';
-      hint.textContent = 'У участников доступны QR-код, змейка и опросник. Волонтёры могут начислять баллы.';
+      hint.textContent = 'Станции работают, волонтёры могут начислять баллы. Опросник открывается и закрывается независимо от мероприятия.';
     } else {
       badge.textContent = '⏸ Остановлено';
       badge.style.cssText = 'background:#fef2f2;color:#dc2626;border-color:#fecaca;';
       btn.textContent = '▶ Начать мероприятие';
       btn.style.cssText = 'width:auto;';
-      hint.textContent = 'У участников скрыто управление, волонтёры не могут начислять баллы. Очки и история сохраняются.';
+      hint.textContent = 'Станции остановлены, волонтёры не могут начислять баллы. Очки и история сохраняются. Опросник работает независимо от мероприятия.';
     }
   }
 
@@ -65,7 +76,7 @@
     summary.textContent = 'Вопросов: ' + surveyQuestions.length + ' · Ответили: ' + answered + ' из ' + total + ' участников';
 
     if (surveyQuestions.length === 0) {
-      box.innerHTML = '<div class="empty" style="padding:20px;">Вопросов пока нет. Нажмите «+ Добавить вопрос» — он сразу появится у участников, когда мероприятие идёт.</div>';
+      box.innerHTML = '<div class="empty" style="padding:20px;">Вопросов пока нет. Нажмите «+ Добавить вопрос» — он появится у участников, когда опросник открыт (независимо от мероприятия).</div>';
       return;
     }
 
@@ -121,7 +132,7 @@
     tbody.innerHTML = '';
 
     if (users.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty" style="padding:14px;">Пользователей пока нет. Нажмите «+ Добавить».</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty" style="padding:14px;">Пользователей пока нет. Нажмите «+ Добавить».</td></tr>';
       return;
     }
 
@@ -131,9 +142,11 @@
         '<td><b>' + esc(u.username) + '</b></td>' +
         '<td><span class="badge ' + esc(u.role) + '">' + esc(MF.ROLE_LABELS[u.role] || u.role) + '</span></td>' +
         '<td>' + esc(u.team || '—') + '</td>' +
+        '<td class="small">' + (u.role !== 'participant' ? '—' : (u.members && u.members.length ? u.members.map((member) => esc(member.lastName + ' ' + member.firstName + ' · ' + member.className)).join('<br>') : 'Состав не заполнен')) + '</td>' +
         '<td style="font-family:ui-monospace;font-size:0.8rem;color:var(--text-muted);word-break:break-all">' + esc(u.qr || '—') + '</td>' +
         '<td><span class="tag points">' + MF.fmtPoints(u.totalPoints || 0) + '</span></td>' +
         '<td><div class="actions">' +
+          (u.role === 'participant' ? '<button class="btn-sm" data-action="print" data-id="' + esc(u.id) + '">Печать QR</button>' : '') +
           '<button class="btn-sm" data-action="edit" data-id="' + esc(u.id) + '">Ред.</button>' +
           '<button class="btn-sm danger" data-action="delete" data-id="' + esc(u.id) + '">Удалить</button>' +
         '</div></td>';
@@ -201,8 +214,6 @@
   /* ---------- настройки ---------- */
   async function loadSettings() {
     const settings = await MF.getSettings();
-    $('setQuizPoints').value = settings.quiz_points_per_correct;
-    $('setSnakePoints').value = settings.snake_points_per_score;
     $('setStationPoints').value = settings.station_points;
   }
 
@@ -224,8 +235,18 @@
       $('passwordHint').style.display = 'none';
     }
 
+    allowEmptyRoster = !!(user && user.role === 'participant' && (!user.members || user.members.length === 0));
+    memberForm.reset(user && user.members, { optional: allowEmptyRoster });
+    updateUserRole();
     $('addUserModal').classList.add('open');
     $('auUsername').focus();
+  }
+
+  function updateUserRole() {
+    const participant = $('auRole').value === 'participant';
+    $('auTeam').required = participant;
+    memberForm.setEnabled(participant);
+    legacyRosterHint.hidden = !participant || !allowEmptyRoster;
   }
 
   function closeUserModal() {
@@ -245,13 +266,15 @@
       $('atDesc').value = task.description || '';
       $('atType').value = task.type;
       $('atPoints').value = task.points;
-      $('atLat').value = task.lat === null ? '' : task.lat;
-      $('atLng').value = task.lng === null ? '' : task.lng;
+      $('atLat').value = task.lat == null ? '' : task.lat;
+      $('atLng').value = task.lng == null ? '' : task.lng;
     } else {
+      $('atType').value = 'station';
       $('atPoints').value = 30;
-      $('atLat').value = 55.7538;
-      $('atLng').value = 37.6218;
+      $('atLat').value = '';
+      $('atLng').value = '';
     }
+    $('taskTypeHint').textContent = 'Тип: ' + (TYPE_LABELS[$('atType').value] || $('atType').value) + (task ? ' (сохраняется).' : ' (волонтёр).');
 
     $('addTaskModal').classList.add('open');
     $('atTitle').focus();
@@ -280,7 +303,7 @@
       const btn = $('btnToggleEvent');
       const next = !eventState.active;
 
-      if (!next && !window.confirm('Остановить мероприятие? У участников скроется управление, волонтёры не смогут начислять баллы.')) {
+      if (!next && !window.confirm('Остановить станции? Волонтёры не смогут начислять баллы. Доступность опросника не изменится.')) {
         return;
       }
 
@@ -314,6 +337,21 @@
     });
 
     /* опросник */
+    $('btnToggleSurvey').addEventListener('click', async () => {
+      const btn = $('btnToggleSurvey');
+      const next = !eventState.surveyOpen;
+      btn.disabled = true;
+      try {
+        const res = await MF.setEvent({ surveyOpen: next });
+        eventState.surveyOpen = res.surveyOpen;
+        renderEvent();
+        MF.showAlert('surveyAlert', eventState.surveyOpen ? 'Опросник открыт.' : 'Опросник закрыт.', 'ok');
+      } catch (err) {
+        MF.showAlert('surveyAlert', err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
     $('btnAddQuestion').addEventListener('click', () => openSurveyModal(null));
     $('closeSurveyModal').addEventListener('click', closeSurveyModal);
     $('btnCancelSurvey').addEventListener('click', closeSurveyModal);
@@ -404,6 +442,7 @@
     });
 
     /* пользователи */
+    $('auRole').addEventListener('change', updateUserRole);
     $('btnOpenAddUser').addEventListener('click', () => openUserModal(null));
     $('closeAddUser').addEventListener('click', closeUserModal);
     $('btnCancelAddUser').addEventListener('click', closeUserModal);
@@ -425,6 +464,9 @@
       if (password) payload.password = password;
 
       try {
+        const members = memberForm.getMembers();
+        if (members !== undefined) payload.members = members;
+        if (payload.role === 'participant' && !payload.team) throw new Error('Укажите название команды.');
         if (editingUserId) {
           await MF.updateUser(editingUserId, payload);
         } else {
@@ -445,6 +487,16 @@
       if (!btn) return;
       const user = users.find((u) => u.id === btn.dataset.id);
       if (!user) return;
+
+      if (btn.dataset.action === 'print' && user.role === 'participant') {
+        try {
+          if (typeof window.MF_PRINT !== 'function') throw new Error('Печать QR пока недоступна. Обновите страницу.');
+          await window.MF_PRINT(user);
+        } catch (err) {
+          window.alert(err.message);
+        }
+        return;
+      }
 
       if (btn.dataset.action === 'edit') {
         openUserModal(user);
@@ -529,8 +581,6 @@
       submitBtn.disabled = true;
       try {
         await MF.saveSettings({
-          quiz_points_per_correct: Number($('setQuizPoints').value),
-          snake_points_per_score: Number($('setSnakePoints').value),
           station_points: Number($('setStationPoints').value),
         });
         MF.showAlert('settingsAlert', 'Настройки сохранены.', 'ok');

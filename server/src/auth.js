@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const config = require('./config');
 const db = require('./db');
 const { HttpError } = require('./util');
+const { readMembers } = require('./team');
 
 const BCRYPT_ROUNDS = 10;
 
@@ -31,6 +32,7 @@ function publicUser(user) {
     role: user.role,
     team: user.team || '',
     qr: user.qr,
+    members: user.members || [],
   };
 }
 
@@ -53,6 +55,7 @@ async function requireAuth(req, res, next) {
     );
     if (!user) throw new HttpError(401, 'Пользователь не найден');
 
+    user.members = await readMembers(user.id);
     req.user = user;
     next();
   } catch (err) {

@@ -14,6 +14,16 @@ CREATE TABLE IF NOT EXISTS users (
   KEY idx_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS team_members (
+  user_id    VARCHAR(24) NOT NULL,
+  position   TINYINT UNSIGNED NOT NULL,
+  first_name VARCHAR(80) NOT NULL,
+  last_name  VARCHAR(80) NOT NULL,
+  class_name VARCHAR(32) NOT NULL,
+  PRIMARY KEY (user_id, position),
+  CONSTRAINT fk_team_members_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS tasks (
   id          VARCHAR(24)  NOT NULL PRIMARY KEY,
   title       VARCHAR(160) NOT NULL,
@@ -91,4 +101,5 @@ INSERT IGNORE INTO settings (k, v) VALUES
   ('snake_points_per_score', '1'),
   ('station_points', '50'),
   ('event_active', '1'),
-  ('registration_open', '1');
+  ('registration_open', '1'),
+  ('survey_open', '0');

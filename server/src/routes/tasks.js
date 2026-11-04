@@ -26,6 +26,20 @@ router.get('/', requireAuth, ah(async (req, res) => {
   res.json({ tasks: rows.map(toTask) });
 }));
 
+router.get('/progress', requireAuth, requireRole('participant'), ah(async (req, res) => {
+  const rows = await db.query(
+    `SELECT t.*, a.id AS award_id, a.awarded_at, a.points AS earned_points
+       FROM tasks t LEFT JOIN awards a ON a.task_id = t.id AND a.user_id = ?
+      WHERE t.type = 'station' ORDER BY t.created_at, t.id`,
+    [req.user.id]
+  );
+  res.json({ stages: rows.map((row) => ({
+    ...toTask(row), completed: row.award_id !== null,
+    completedAt: row.awarded_at === null ? null : Number(row.awarded_at),
+    earnedPoints: Number(row.earned_points || 0),
+  })) });
+}));
+
 router.post('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const title = str(req.body.title, { field: 'Название', max: 160 });
   const description = str(req.body.description, { field: 'Описание', max: 2000, required: false });

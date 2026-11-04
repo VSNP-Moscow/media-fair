@@ -38,6 +38,9 @@ router.post('/', requireAuth, requireRole('volunteer', 'admin'), ah(async (req, 
 
   const task = taskId ? await db.one('SELECT * FROM tasks WHERE id = ?', [taskId]) : null;
   if (taskId && !task) throw new HttpError(404, 'Задание не найдено');
+  if (req.user.role === 'volunteer' && (!task || task.type !== 'station')) {
+    throw new HttpError(400, 'Выберите станцию мероприятия.');
+  }
 
   let points;
   if (task && task.type === 'station') {
@@ -105,7 +108,7 @@ router.get('/mine', requireAuth, ah(async (req, res) => {
   );
 
   res.json({
-    totalPoints: rows.reduce((sum, row) => sum + Number(row.points), 0),
+    totalPoints: await totalFor(req.user.id),
     entries: rows.map((row) => ({
       id: Number(row.id),
       points: Number(row.points),
@@ -145,19 +148,21 @@ router.get('/recent', requireAuth, requireRole('volunteer', 'admin'), ah(async (
 /* ---------- табло команд (публичное) ---------- */
 async function leaderboard() {
   const rows = await db.query(
-    `SELECT u.team AS team,
-            COUNT(*) AS members,
-            COALESCE(SUM(p.pts), 0) AS points
+    `SELECT u.id, COALESCE(NULLIF(u.team, ''), u.username) AS team,
+            GREATEST(COALESCE(m.member_count, 0), 1) AS members,
+            COALESCE(p.pts, 0) AS points
        FROM users u
        LEFT JOIN (SELECT user_id, SUM(points) AS pts FROM awards GROUP BY user_id) p
               ON p.user_id = u.id
+       LEFT JOIN (SELECT user_id, COUNT(*) AS member_count FROM team_members GROUP BY user_id) m
+              ON m.user_id = u.id
       WHERE u.role = 'participant'
-      GROUP BY u.team
-      ORDER BY points DESC, u.team ASC`
+      ORDER BY points DESC, team ASC, u.id`
   );
 
   return rows.map((row, index) => ({
     place: index + 1,
+    id: row.id,
     team: row.team || 'Без команды',
     members: Number(row.members),
     points: Number(row.points),

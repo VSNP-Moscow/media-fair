@@ -150,7 +150,7 @@
     } catch (err) {
       MF.showAlert('awardAlert', err.message);
     } finally {
-      submitBtn.disabled = false;
+      submitBtn.disabled = !eventActive;
     }
   }
 
@@ -307,7 +307,7 @@
     $('awardForm').addEventListener('reset', () => setTimeout(syncTaskFields, 0));
 
     try {
-      tasks = await MF.getTasks(true);
+      tasks = (await MF.getTasks(true)).filter((task) => task.type === 'station');
       renderTasksSelect();
       await refreshRecent();
       await refreshEventState();

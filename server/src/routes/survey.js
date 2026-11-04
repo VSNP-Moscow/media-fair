@@ -73,6 +73,7 @@ router.get('/', requireAuth, ah(async (req, res) => {
 
   res.json({
     questions: publicQuestions(questions),
+    open: await events.isSurveyOpen(),
     submitted: !!response,
     answeredAt: response ? Number(response.submitted_at) : null,
     answers: response ? parseObject(response.answers) : null,
@@ -81,8 +82,8 @@ router.get('/', requireAuth, ah(async (req, res) => {
 
 /* ---------- отправка ответов участником ---------- */
 router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, res) => {
-  if (!(await events.isActive())) {
-    throw new HttpError(409, 'Мероприятие остановлено — опросник недоступен.');
+  if (!(await events.isSurveyOpen())) {
+    throw new HttpError(409, 'Опросник закрыт организаторами.');
   }
 
   const questions = await readQuestions();

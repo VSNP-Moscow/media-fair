@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const db = require('../db');
 const config = require('../config');
 const events = require('../event');
-const { HttpError, ah, str, roleOf } = require('../util');
+const { HttpError, ah, str } = require('../util');
+const { normalizeMembers, readMembers, saveMembers } = require('../team');
 const { hashPassword, checkPassword, signToken, publicUser, requireAuth } = require('../auth');
 
 const router = express.Router();
@@ -88,23 +89,29 @@ router.post('/register', async (req, res, next) => {
 
     const username = str(req.body.username, { field: 'Логин', min: 3, max: 32 });
     const password = str(req.body.password, { field: 'Пароль', min: 6, max: 72, trim: false });
-    const team = str(req.body.team, { field: 'Команда', max: 120, required: false });
+    if (typeof req.body.team !== 'string') throw new HttpError(400, 'Команда: нужна строка');
+    const team = str(req.body.team, { field: 'Команда', max: 120 });
+    const members = normalizeMembers(req.body.members);
 
     const id = 'u' + crypto.randomBytes(5).toString('hex');
     const qr = 'MF|PART|' + id;
 
     try {
-      await db.query(
-        'INSERT INTO users (id, username, password_hash, role, team, qr, created_at) VALUES (?,?,?,?,?,?,?)',
-        [id, username, await hashPassword(password), 'participant', team, qr, Date.now()]
-      );
+      const passwordHash = await hashPassword(password);
+      await db.tx(async (conn) => {
+        await conn.query(
+          'INSERT INTO users (id, username, password_hash, role, team, qr, created_at) VALUES (?,?,?,?,?,?,?)',
+          [id, username, passwordHash, 'participant', team, qr, Date.now()]
+        );
+        await saveMembers(conn, id, members);
+      });
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'Такой логин уже занят. Выберите другой.');
       throw err;
     }
 
     resetRateLimit(req);
-    const user = { id, username, role: 'participant', team, qr };
+    const user = { id, username, role: 'participant', team, qr, members };
     res.status(201).json({ user: publicUser(user), token: signToken(user) });
   } catch (err) {
     next(err);
@@ -135,6 +142,7 @@ router.post('/login', async (req, res, next) => {
       throw new HttpError(401, 'Неверный логин или пароль');
     }
 
+    user.members = await readMembers(user.id);
     resetRateLimit(req);
     res.json({ user: publicUser(user), token: signToken(user) });
   } catch (err) {

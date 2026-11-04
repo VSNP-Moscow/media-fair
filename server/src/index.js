@@ -73,9 +73,9 @@ app.use('/api/event', eventRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/awards', awardRoutes);
-app.use('/api/quiz', quizRoutes);
+app.use('/api/quiz', (req, res) => res.status(410).json({ error: 'Викторина исключена из сценария мероприятия.' }));
 app.use('/api/survey', surveyRoutes);
-app.use('/api/game', gameRoutes);
+app.use('/api/game', (req, res) => res.status(410).json({ error: 'Игра исключена из сценария мероприятия.' }));
 app.use('/api/settings', settingsRoutes);
 
 app.use((req, res) => {
