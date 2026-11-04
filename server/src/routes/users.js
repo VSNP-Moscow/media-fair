@@ -157,6 +157,28 @@ router.post('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
   res.status(201).json({ user: { id, username, role, team, qr, stationId, members: members || [], totalPoints: 0 } });
 }));
 
+router.post('/:id/credentials.xlsx', requireAuth, requireRole('admin'), ah(async (req, res) => {
+  if (req.body.confirm !== true) throw new HttpError(400, 'Подтвердите замену пароля аккаунта.');
+  const id = idOf(req.params.id);
+  const user = await db.one('SELECT id, username, team, role FROM users WHERE id = ?', [id]);
+  if (!user) throw new HttpError(404, 'Пользователь не найден');
+  const password = crypto.randomBytes(15).toString('base64url');
+  const buffer = buildXlsx({
+    sheetName: 'Доступ к аккаунту', columns: [28, 35],
+    rows: [
+      ['Поле', 'Значение'], ['Логин', user.username], ['Новый пароль', password],
+      ['Команда', user.team || ''], ['Роль', ROLE_LABELS[user.role] || user.role],
+      ['Адрес входа', 'https://vsnp-moscow.github.io/media-fair/index.html'],
+      ['Важно', 'Старый пароль заменён. Передайте файл владельцу аккаунта и храните его в безопасном месте.'],
+    ],
+  });
+  await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [await hashPassword(password), id]);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="media-fair-access.xlsx"');
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.send(buffer);
+}));
+
 router.patch('/:id', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const id = idOf(req.params.id);
   const target = await db.one(`SELECT u.id, u.username, u.role, u.team, u.qr, vs.task_id AS stationId

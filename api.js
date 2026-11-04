@@ -55,14 +55,18 @@
     return data || {};
   }
 
-  async function requestBlob(path) {
+  async function requestBlob(path, options) {
+    var opts = options || {};
     var headers = { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
     var token = getToken();
     if (token) headers.Authorization = 'Bearer ' + token;
 
     var response;
     try {
-      response = await fetch(BASE + path, { headers: headers, mode: 'cors', cache: 'no-store' });
+      response = await fetch(BASE + path, {
+        method: opts.method || 'GET', headers: headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body), mode: 'cors', cache: 'no-store'
+      });
     } catch (e) {
       var netErr = new Error('Нет связи с сервером. Проверьте интернет и попробуйте ещё раз.');
       netErr.network = true;

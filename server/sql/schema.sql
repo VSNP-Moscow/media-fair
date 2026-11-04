@@ -96,12 +96,18 @@ CREATE TABLE IF NOT EXISTS survey_questions (
   KEY idx_position (position)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Один ответ на участника. answers — JSON-объект {id_вопроса: номер_варианта}.
+-- Один ответ на участника. answers — JSON-объект {id_вопроса: индекс | текст | массив индексов}.
 CREATE TABLE IF NOT EXISTS survey_responses (
   user_id      VARCHAR(24) NOT NULL PRIMARY KEY,
   answers      JSON        NOT NULL,
   submitted_at BIGINT      NOT NULL,
   CONSTRAINT fk_survey_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS survey_question_types (
+  question_id VARCHAR(24) NOT NULL PRIMARY KEY,
+  type ENUM('choice','text','multiple') NOT NULL,
+  CONSTRAINT fk_survey_question_type FOREIGN KEY (question_id) REFERENCES survey_questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO settings (k, v) VALUES

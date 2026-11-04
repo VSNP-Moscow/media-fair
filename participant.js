@@ -41,7 +41,8 @@
       '<fieldset class="survey-field"><legend>' + (index + 1) + '. ' + esc(question.text) + '</legend>' +
       (question.type === 'text'
         ? '<label for="sq_text_' + index + '">Ваш ответ (до 2000 символов)</label><textarea id="sq_text_' + index + '" name="sq_' + esc(question.id) + '" rows="4" maxlength="2000" required></textarea>'
-        : (question.options || []).map((option, choice) => '<label class="survey-choice"><input type="radio" name="sq_' + esc(question.id) + '" value="' + choice + '"><span>' + esc(option) + '</span></label>').join('')) + '</fieldset>'
+        : (question.type === 'multiple' ? '<p class="small">Выберите один или несколько вариантов.</p>' : '') +
+          (question.options || []).map((option, choice) => '<label class="survey-choice"><input type="' + (question.type === 'multiple' ? 'checkbox' : 'radio') + '" name="sq_' + esc(question.id) + '" value="' + choice + '"><span>' + esc(option) + '</span></label>').join('')) + '</fieldset>'
     ).join('');
   }
 
@@ -89,6 +90,10 @@
           return MF.showAlert('surveyAlert', 'Ответьте на вопрос ' + (i + 1) + ' (до 2000 символов).');
         }
         answers.push(text);
+      } else if (questions[i].type === 'multiple') {
+        const checked = Array.from(document.querySelectorAll('input[name="sq_' + questions[i].id + '"]:checked'));
+        if (!checked.length) return MF.showAlert('surveyAlert', 'Выберите хотя бы один вариант в вопросе ' + (i + 1) + '.');
+        answers.push(checked.map((field) => Number(field.value)));
       } else {
         const checked = document.querySelector('input[name="sq_' + questions[i].id + '"]:checked');
         if (!checked) return MF.showAlert('surveyAlert', 'Ответьте на вопрос ' + (i + 1) + '.');

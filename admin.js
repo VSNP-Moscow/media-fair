@@ -89,14 +89,16 @@
         ).join('') || '<div class="small">Текстовых ответов пока нет.</div>'
         : (question.options || []).map((option, optionIndex) => {
           const count = question.counts[optionIndex] || 0;
-          const percent = answered > 0 ? Math.round((count / answered) * 100) : 0;
+          const denominator = question.answered;
+          const percent = denominator > 0 ? Math.round((count / denominator) * 100) : 0;
           return '<div class="survey-option"><span>' + esc(option) + '</span><b>' + count + ' · ' + percent + '%</b></div>';
         }).join('');
 
       return '<div class="survey-q">' +
         '<div class="survey-q-head">' +
           '<div><b>' + (index + 1) + '. ' + esc(question.text) + '</b>' +
-          '<div class="small" style="margin-top:4px;">Ответили: ' + question.answered + ' из ' + answered + '</div></div>' +
+          '<div class="small" style="margin-top:4px;">Ответили: ' + question.answered + ' из ' + answered +
+          (question.type === 'multiple' ? ' · Несколько вариантов; % от ответивших на вопрос, сумма может быть больше 100%' : '') + '</div></div>' +
           '<div class="actions" style="margin-top:0;">' +
             '<button class="btn-sm" data-action="edit" data-id="' + esc(question.id) + '">Ред.</button>' +
             '<button class="btn-sm danger" data-action="delete" data-id="' + esc(question.id) + '">Удалить</button>' +
@@ -115,7 +117,7 @@
 
     if (question) {
       $('sqText').value = question.text;
-      $('sqType').value = question.type === 'text' ? 'text' : 'choice';
+      $('sqType').value = question.type || 'choice';
       $('sqOptions').value = (question.options || []).join('\n');
     }
     updateSurveyType();
@@ -166,6 +168,7 @@
         '<td><div class="actions">' +
           (u.role === 'participant' ? '<button class="btn-sm" data-action="print" data-id="' + esc(u.id) + '">Печать QR</button>' : '') +
           '<button class="btn-sm" data-action="edit" data-id="' + esc(u.id) + '">Ред.</button>' +
+          '<button class="btn-sm" data-action="credentials" data-id="' + esc(u.id) + '">Новый пароль + Excel</button>' +
           '<button class="btn-sm danger" data-action="delete" data-id="' + esc(u.id) + '">Удалить</button>' +
         '</div></td>';
       tbody.appendChild(tr);
@@ -417,7 +420,7 @@
         MF.showAlert('surveyModalAlert', 'Вопрос: минимум 3 символа.');
         return;
       }
-      if (type === 'choice' && (options.length < 2 || options.length > 8)) {
+      if (type !== 'text' && (options.length < 2 || options.length > 8)) {
         MF.showAlert('surveyModalAlert', 'Нужно от 2 до 8 вариантов ответа — по одному в строке.');
         return;
       }
@@ -550,6 +553,27 @@
           await window.MF_PRINT(user);
         } catch (err) {
           window.alert(err.message);
+        }
+        return;
+      }
+
+      if (btn.dataset.action === 'credentials') {
+        if (!window.confirm('Заменить пароль пользователя «' + user.username + '»? Старый перестанет работать. Excel содержит новый пароль.')) return;
+        btn.disabled = true;
+        try {
+          const blob = await window.MF_API.requestBlob('/users/' + encodeURIComponent(user.id) + '/credentials.xlsx', { method: 'POST', body: { confirm: true } });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'media-fair-access.xlsx';
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        } catch (err) {
+          window.alert('Не удалось скачать Excel: ' + err.message + '\nПароль мог уже измениться. Не повторяйте запрос автоматически; проверьте загрузки перед повторной заменой.');
+        } finally {
+          btn.disabled = false;
         }
         return;
       }

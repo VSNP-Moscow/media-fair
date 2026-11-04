@@ -25,6 +25,8 @@ async function main() {
 
   try {
     await conn.query(sql);
+    await conn.query(`INSERT IGNORE INTO survey_question_types (question_id, type)
+      SELECT id, IF(JSON_LENGTH(options) = 0, 'text', 'choice') FROM survey_questions`);
     console.log('[migrate] схема применена');
   } finally {
     await conn.end();
