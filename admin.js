@@ -81,11 +81,17 @@
     }
 
     box.innerHTML = surveyQuestions.map((question, index) => {
-      const options = question.options.map((option, optionIndex) => {
-        const count = question.counts[optionIndex] || 0;
-        const percent = answered > 0 ? Math.round((count / answered) * 100) : 0;
-        return '<div class="survey-option"><span>' + esc(option) + '</span><b>' + count + ' · ' + percent + '%</b></div>';
-      }).join('');
+      const options = question.type === 'text'
+        ? (question.textAnswers || []).map((answer) =>
+          '<div class="survey-q"><b>' + esc(answer.team || answer.username || 'Команда без названия') + '</b>' +
+          '<div class="small">' + esc(answer.username || '') + (answer.submittedAt ? ' · ' + esc(MF.fmtDate(answer.submittedAt)) : '') + '</div>' +
+          '<div style="margin-top:8px;white-space:pre-wrap;overflow-wrap:anywhere;">' + esc(answer.text) + '</div></div>'
+        ).join('') || '<div class="small">Текстовых ответов пока нет.</div>'
+        : (question.options || []).map((option, optionIndex) => {
+          const count = question.counts[optionIndex] || 0;
+          const percent = answered > 0 ? Math.round((count / answered) * 100) : 0;
+          return '<div class="survey-option"><span>' + esc(option) + '</span><b>' + count + ' · ' + percent + '%</b></div>';
+        }).join('');
 
       return '<div class="survey-q">' +
         '<div class="survey-q-head">' +
@@ -109,11 +115,20 @@
 
     if (question) {
       $('sqText').value = question.text;
-      $('sqOptions').value = question.options.join('\n');
+      $('sqType').value = question.type === 'text' ? 'text' : 'choice';
+      $('sqOptions').value = (question.options || []).join('\n');
     }
+    updateSurveyType();
 
     $('surveyModal').classList.add('open');
     $('sqText').focus();
+  }
+
+  function updateSurveyType() {
+    const text = $('sqType').value === 'text';
+    $('sqOptionsGroup').hidden = text;
+    $('sqOptions').disabled = text;
+    $('sqOptions').required = !text;
   }
 
   function closeSurveyModal() {
@@ -138,9 +153,12 @@
 
     users.forEach((u) => {
       const tr = document.createElement('tr');
+      const station = tasks.find((task) => task.type === 'station' && task.id === u.stationId);
+      const stationText = station ? 'Станция: ' + station.title : (u.stationId ? 'Станция недоступна — назначьте другую' : 'Станция не назначена');
       tr.innerHTML =
         '<td><b>' + esc(u.username) + '</b></td>' +
-        '<td><span class="badge ' + esc(u.role) + '">' + esc(MF.ROLE_LABELS[u.role] || u.role) + '</span></td>' +
+        '<td><span class="badge ' + esc(u.role) + '">' + esc(MF.ROLE_LABELS[u.role] || u.role) + '</span>' +
+          (u.role === 'volunteer' ? '<div class="small" style="margin-top:4px;overflow-wrap:anywhere;">' + esc(stationText) + '</div>' : '') + '</td>' +
         '<td>' + esc(u.team || '—') + '</td>' +
         '<td class="small">' + (u.role !== 'participant' ? '—' : (u.members && u.members.length ? u.members.map((member) => esc(member.lastName + ' ' + member.firstName + ' · ' + member.className)).join('<br>') : 'Состав не заполнен')) + '</td>' +
         '<td style="font-family:ui-monospace;font-size:0.8rem;color:var(--text-muted);word-break:break-all">' + esc(u.qr || '—') + '</td>' +
@@ -158,6 +176,10 @@
   async function loadTasks() {
     tasks = await MF.getTasks(true);
     renderTasks();
+    renderUsers();
+    if ($('addUserModal').classList.contains('open')) {
+      populateUserStations($('auStation').value);
+    }
   }
 
   function renderTasks() {
@@ -237,16 +259,40 @@
 
     allowEmptyRoster = !!(user && user.role === 'participant' && (!user.members || user.members.length === 0));
     memberForm.reset(user && user.members, { optional: allowEmptyRoster });
+    populateUserStations(user && user.stationId);
     updateUserRole();
     $('addUserModal').classList.add('open');
     $('auUsername').focus();
   }
 
+  function populateUserStations(stationId) {
+    const select = $('auStation');
+    select.innerHTML = '<option value="">Выберите станцию</option>' + tasks.filter((task) => task.type === 'station').map((task) =>
+      '<option value="' + esc(task.id) + '">' + esc(task.title) + '</option>'
+    ).join('');
+    select.value = stationId || '';
+    updateStationHint();
+  }
+
+  function updateStationHint() {
+    const hasStations = tasks.some((task) => task.type === 'station');
+    $('auStationHint').textContent = !hasStations
+      ? 'Станций пока нет. Сначала добавьте задание типа «Станция», затем назначьте его волонтёру. Сохранение волонтёра без станции невозможно.'
+      : !$('auStation').value
+        ? 'Станция не назначена. Выберите станцию перед сохранением: волонтёр сможет начислять баллы только за неё.'
+        : 'Волонтёр сможет начислять баллы только за назначенную станцию.';
+  }
+
   function updateUserRole() {
     const participant = $('auRole').value === 'participant';
+    const volunteer = $('auRole').value === 'volunteer';
     $('auTeam').required = participant;
     memberForm.setEnabled(participant);
     legacyRosterHint.hidden = !participant || !allowEmptyRoster;
+    $('auStationGroup').hidden = !volunteer;
+    $('auStation').disabled = !volunteer;
+    $('auStation').required = volunteer;
+    updateStationHint();
   }
 
   function closeUserModal() {
@@ -352,6 +398,7 @@
         btn.disabled = false;
       }
     });
+    $('sqType').addEventListener('change', updateSurveyType);
     $('btnAddQuestion').addEventListener('click', () => openSurveyModal(null));
     $('closeSurveyModal').addEventListener('click', closeSurveyModal);
     $('btnCancelSurvey').addEventListener('click', closeSurveyModal);
@@ -363,13 +410,14 @@
       e.preventDefault();
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const text = $('sqText').value.trim();
-      const options = $('sqOptions').value.split('\n').map((line) => line.trim()).filter(Boolean);
+      const type = $('sqType').value;
+      const options = type === 'text' ? [] : $('sqOptions').value.split('\n').map((line) => line.trim()).filter(Boolean);
 
       if (text.length < 3) {
         MF.showAlert('surveyModalAlert', 'Вопрос: минимум 3 символа.');
         return;
       }
-      if (options.length < 2 || options.length > 8) {
+      if (type === 'choice' && (options.length < 2 || options.length > 8)) {
         MF.showAlert('surveyModalAlert', 'Нужно от 2 до 8 вариантов ответа — по одному в строке.');
         return;
       }
@@ -378,9 +426,9 @@
       const wasEditing = !!editingQuestionId;
       try {
         if (editingQuestionId) {
-          await MF.updateSurveyQuestion(editingQuestionId, { text: text, options: options });
+          await MF.updateSurveyQuestion(editingQuestionId, { text: text, type: type, options: options });
         } else {
-          await MF.addSurveyQuestion({ text: text, options: options });
+          await MF.addSurveyQuestion({ text: text, type: type, options: options });
         }
         closeSurveyModal();
         await loadSurvey();
@@ -443,6 +491,7 @@
 
     /* пользователи */
     $('auRole').addEventListener('change', updateUserRole);
+    $('auStation').addEventListener('change', updateStationHint);
     $('btnOpenAddUser').addEventListener('click', () => openUserModal(null));
     $('closeAddUser').addEventListener('click', closeUserModal);
     $('btnCancelAddUser').addEventListener('click', closeUserModal);
@@ -467,6 +516,13 @@
         const members = memberForm.getMembers();
         if (members !== undefined) payload.members = members;
         if (payload.role === 'participant' && !payload.team) throw new Error('Укажите название команды.');
+        if (payload.role === 'volunteer') {
+          const stationId = $('auStation').value;
+          if (!tasks.some((task) => task.type === 'station' && task.id === stationId)) {
+            throw new Error('Назначьте волонтёру станцию перед сохранением. Если станций нет, сначала добавьте станцию.');
+          }
+          payload.stationId = stationId;
+        }
         if (editingUserId) {
           await MF.updateUser(editingUserId, payload);
         } else {
@@ -609,5 +665,20 @@
     loadSurvey().catch((err) => {
       $('surveySummary').textContent = 'Не удалось загрузить опросник: ' + err.message;
     });
+
+    let refreshing = false;
+    const timer = setInterval(async () => {
+      if (refreshing || document.querySelector('.modal-overlay.open')) return;
+      refreshing = true;
+      try {
+        const results = await Promise.allSettled([loadUsers(), loadLeaderboard(), loadSurvey(), loadEvent()]);
+        results.forEach((result) => {
+          if (result.status === 'rejected') console.warn('Не удалось обновить данные администратора:', result.reason);
+        });
+      } finally {
+        refreshing = false;
+      }
+    }, 30000);
+    window.addEventListener('beforeunload', () => clearInterval(timer));
   })();
 })();

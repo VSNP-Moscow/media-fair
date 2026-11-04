@@ -32,6 +32,7 @@ function publicUser(user) {
     role: user.role,
     team: user.team || '',
     qr: user.qr,
+    stationId: user.stationId || null,
     members: user.members || [],
   };
 }
@@ -50,7 +51,9 @@ async function requireAuth(req, res, next) {
     }
 
     const user = await db.one(
-      'SELECT id, username, role, team, qr FROM users WHERE id = ?',
+      `SELECT u.id, u.username, u.role, u.team, u.qr, vs.task_id AS stationId
+         FROM users u LEFT JOIN volunteer_stations vs ON vs.user_id = u.id AND u.role = 'volunteer'
+        WHERE u.id = ?`,
       [payload.sub]
     );
     if (!user) throw new HttpError(401, 'Пользователь не найден');

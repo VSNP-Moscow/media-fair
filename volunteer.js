@@ -11,6 +11,8 @@
   let selectedTask = null;
   let scanner = null;
   let eventActive = true;
+  let currentUser = null;
+  let scanning = false;
 
   /* ---------- состояние мероприятия ---------- */
   function applyEventState(active) {
@@ -28,6 +30,7 @@
 
     const submit = $('awardForm').querySelector('button[type="submit"]');
     if (submit) submit.disabled = !active;
+    $('btnLookupManual').disabled = scanning || !active;
   }
 
   async function refreshEventState() {
@@ -95,20 +98,36 @@
   }
 
   async function lookup(qr) {
+    if (scanning) return;
+    if (!eventActive) return scanMessage('Мероприятие остановлено — станция не отмечена.');
     const code = (qr || '').trim();
     if (!code) {
-      scanMessage('Введите QR-код участника');
+      scanMessage('Введите QR-код команды');
       return;
     }
 
+    scanning = true;
+    $('btnLookupManual').disabled = true;
     try {
       const participant = await MF.lookupByQr(code);
       showParticipant(participant);
-      scanMessage('Найден участник: ' + participant.username, 'ok');
+      if (currentUser.role === 'volunteer') {
+        const result = await MF.awardPoints({ userId: participant.id });
+        participant.totalPoints = result.totalPoints;
+        showParticipant(participant);
+        MF.showAlert('awardAlert', 'Станция пройдена! Начислено +' + MF.fmtPoints(result.points) + ' баллов.', 'ok');
+        scanMessage('Готово: ' + (participant.team || participant.username) + ' — станция пройдена.', 'ok');
+        await refreshRecent();
+      } else {
+        scanMessage('Команда найдена. Выберите станцию для ручного начисления.', 'ok');
+      }
       $('manualQr').value = '';
     } catch (err) {
-      showParticipant(null);
       scanMessage(err.message);
+      MF.showAlert('awardAlert', err.message);
+    } finally {
+      scanning = false;
+      $('btnLookupManual').disabled = !eventActive;
     }
   }
 
@@ -293,6 +312,9 @@
   (async function boot() {
     const user = await MF.init(['volunteer', 'admin']);
     if (!user) return;
+    currentUser = user;
+    $('awardForm').style.display = user.role === 'admin' ? '' : 'none';
+    $('btnLookupManual').textContent = user.role === 'volunteer' ? 'Отметить прохождение' : 'Найти команду';
 
     $('btnLogout').addEventListener('click', () => MF.logout());
     $('btnLookupManual').addEventListener('click', () => lookup($('manualQr').value));
@@ -309,6 +331,8 @@
     try {
       tasks = (await MF.getTasks(true)).filter((task) => task.type === 'station');
       renderTasksSelect();
+      const assigned = tasks.find((task) => task.id === user.stationId);
+      $('assignedStation').textContent = user.role === 'admin' ? 'Ручной режим администратора' : assigned ? 'Ваша станция: ' + assigned.title : 'Станция не назначена. Попросите администратора назначить её вашему аккаунту.';
       await refreshRecent();
       await refreshEventState();
     } catch (err) {
@@ -317,6 +341,9 @@
     }
 
     resetScannerPrompt();
+    window.addEventListener('beforeunload', () => {
+      if (scanner) scanner.stop().catch(() => {});
+    });
     setInterval(() => {
       refreshRecent().catch(() => {});
       refreshEventState();

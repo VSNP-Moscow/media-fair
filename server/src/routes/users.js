@@ -12,6 +12,35 @@ const router = express.Router();
 
 const QR_PREFIX = { admin: 'ADMIN', participant: 'PART', volunteer: 'VOL' };
 
+function stationFor(role, value, required) {
+  if (role !== 'volunteer') {
+    if (value !== undefined && value !== null && value !== '') {
+      throw new HttpError(400, 'Станцию можно назначить только волонтёру');
+    }
+    return null;
+  }
+  if (value === undefined && !required) return undefined;
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new HttpError(400, 'Волонтёру необходимо назначить станцию');
+  }
+  return idOf(value, 'Станция');
+}
+
+async function saveStation(conn, userId, stationId) {
+  if (stationId === undefined) return;
+  if (stationId === null) {
+    await conn.query('DELETE FROM volunteer_stations WHERE user_id = ?', [userId]);
+    return;
+  }
+  const [tasks] = await conn.query('SELECT id, type FROM tasks WHERE id = ? FOR UPDATE', [stationId]);
+  if (!tasks.length) throw new HttpError(400, 'Назначенная станция не найдена');
+  if (tasks[0].type !== 'station') throw new HttpError(400, 'Назначить можно только задание типа «станция»');
+  await conn.query(
+    'INSERT INTO volunteer_stations (user_id, task_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE task_id = VALUES(task_id)',
+    [userId, stationId]
+  );
+}
+
 async function adminCount() {
   const row = await db.one("SELECT COUNT(*) AS total FROM users WHERE role = 'admin'");
   return Number(row.total);
@@ -19,9 +48,10 @@ async function adminCount() {
 
 function listSql() {
   return `
-    SELECT u.id, u.username, u.role, u.team, u.qr, u.created_at,
+    SELECT u.id, u.username, u.role, u.team, u.qr, u.created_at, vs.task_id AS stationId,
            COALESCE(p.pts, 0) AS total_points
       FROM users u
+      LEFT JOIN volunteer_stations vs ON vs.user_id = u.id AND u.role = 'volunteer'
       LEFT JOIN (SELECT user_id, SUM(points) AS pts FROM awards GROUP BY user_id) p
              ON p.user_id = u.id
      ORDER BY FIELD(u.role, 'admin', 'volunteer', 'participant'), u.username`;
@@ -41,6 +71,7 @@ async function listUsers() {
     role: u.role,
     team: u.team,
     qr: u.qr,
+    stationId: u.stationId || null,
     totalPoints: Number(u.total_points),
     createdAt: Number(u.created_at),
     members: membersByUser.get(u.id) || [],
@@ -98,6 +129,7 @@ router.post('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const username = str(req.body.username, { field: 'Логин', min: 3, max: 32 });
   const password = str(req.body.password, { field: 'Пароль', min: 6, max: 72, trim: false });
   const role = roleOf(req.body.role);
+  const stationId = stationFor(role, req.body.stationId, true);
   if (req.body.team !== undefined && typeof req.body.team !== 'string') {
     throw new HttpError(400, 'Команда: нужна строка');
   }
@@ -115,18 +147,21 @@ router.post('/', requireAuth, requireRole('admin'), ah(async (req, res) => {
         [id, username, passwordHash, role, team, qr, Date.now()]
       );
       if (members !== undefined) await saveMembers(conn, id, members);
+      await saveStation(conn, id, stationId);
     });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'Такой логин уже занят');
     throw err;
   }
 
-  res.status(201).json({ user: { id, username, role, team, qr, members: members || [], totalPoints: 0 } });
+  res.status(201).json({ user: { id, username, role, team, qr, stationId, members: members || [], totalPoints: 0 } });
 }));
 
 router.patch('/:id', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const id = idOf(req.params.id);
-  const target = await db.one('SELECT id, username, role, team, qr FROM users WHERE id = ?', [id]);
+  const target = await db.one(`SELECT u.id, u.username, u.role, u.team, u.qr, vs.task_id AS stationId
+      FROM users u LEFT JOIN volunteer_stations vs ON vs.user_id = u.id AND u.role = 'volunteer'
+     WHERE u.id = ?`, [id]);
   if (!target) throw new HttpError(404, 'Пользователь не найден');
 
   const changes = {};
@@ -149,6 +184,8 @@ router.patch('/:id', requireAuth, requireRole('admin'), ah(async (req, res) => {
     changes.password_hash = await hashPassword(password);
   }
 
+  const nextRole = changes.role || target.role;
+  const stationId = stationFor(nextRole, req.body.stationId, target.role !== 'volunteer' && nextRole === 'volunteer');
   const becomingParticipant = target.role !== 'participant' && changes.role === 'participant';
   const members = normalizeMembers(req.body.members, { required: becomingParticipant });
   if ((changes.role || target.role) === 'participant' && (members !== undefined || becomingParticipant)) {
@@ -156,7 +193,7 @@ router.patch('/:id', requireAuth, requireRole('admin'), ah(async (req, res) => {
   }
 
   const fields = Object.keys(changes);
-  if (fields.length === 0 && members === undefined) {
+  if (fields.length === 0 && members === undefined && stationId === undefined) {
     return res.json({ user: { ...target, members: await readMembers(id) } });
   }
 
@@ -171,13 +208,16 @@ router.patch('/:id', requireAuth, requireRole('admin'), ah(async (req, res) => {
         );
       }
       if (members !== undefined) await saveMembers(conn, id, members);
+      await saveStation(conn, id, stationId);
     });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'Такой логин уже занят');
     throw err;
   }
 
-  const updated = await db.one('SELECT id, username, role, team, qr FROM users WHERE id = ?', [id]);
+  const updated = await db.one(`SELECT u.id, u.username, u.role, u.team, u.qr, vs.task_id AS stationId
+      FROM users u LEFT JOIN volunteer_stations vs ON vs.user_id = u.id AND u.role = 'volunteer'
+     WHERE u.id = ?`, [id]);
   res.json({ user: { ...updated, members: await readMembers(id), totalPoints: undefined } });
 }));
 

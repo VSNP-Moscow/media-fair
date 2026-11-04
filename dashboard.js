@@ -7,7 +7,7 @@
 
   const $ = (id) => document.getElementById(id);
   const MF = window.__MF;
-  const REFRESH_MS = 5000;
+  const REFRESH_MS = 30000;
   const esc = MF.escapeHtml;
 
   let timer = null;
@@ -63,7 +63,7 @@
 
       try {
         const ev = await MF.getEventStatus();
-        $('autoRefresh').textContent = ev.active ? '● Мероприятие идёт' : '⏸ Мероприятие остановлено';
+        $('autoRefresh').textContent = (ev.active ? '● Мероприятие идёт' : '⏸ Мероприятие остановлено') + ' · Обновление: 30 с';
       } catch (e) { /* статус не критичен для табло */ }
     } catch (err) {
       renderError(err.message);

@@ -4,9 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Администратор</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="event-theme.css?v=1">
 </head>
-<body>
+<body class="admin-page">
   <header class="topbar">
     <div class="container">
       <div class="brand">
@@ -129,7 +130,7 @@
     <!-- Модалка пользователя -->
     <div class="modal-overlay" id="addUserModal">
       <div class="modal">
-        <div class="close" id="closeAddUser">✕</div>
+        <button type="button" class="close" id="closeAddUser" aria-label="Закрыть окно пользователя" style="background:none;border:0;cursor:pointer;">✕</button>
         <h3 id="modalUserTitle">Новый пользователь</h3>
         <div id="addUserAlert" class="alert"></div>
         <form id="addUserForm">
@@ -144,6 +145,11 @@
             <option value="volunteer">Волонтёр</option>
             <option value="admin">Администратор</option>
           </select></div>
+          <div class="form-group" id="auStationGroup" hidden>
+            <label for="auStation">Станция волонтёра</label>
+            <select id="auStation" disabled aria-describedby="auStationHint"></select>
+            <div class="small" id="auStationHint" role="status" style="margin-top:6px;"></div>
+          </div>
           <div class="form-group"><label for="auTeam">Название команды</label><input id="auTeam" type="text" maxlength="120" placeholder="например, Команда «Медиа»"></div>
           <div id="auMembers" role="group" aria-label="Состав команды"></div>
           <div class="actions" style="margin-top:14px;">
@@ -157,7 +163,7 @@
     <!-- Модалка задания -->
     <div class="modal-overlay" id="addTaskModal">
       <div class="modal">
-        <div class="close" id="closeAddTask">✕</div>
+        <button type="button" class="close" id="closeAddTask" aria-label="Закрыть окно задания" style="background:none;border:0;cursor:pointer;">✕</button>
         <h3 id="modalTaskTitle">Новое задание</h3>
         <div id="addTaskAlert" class="alert"></div>
         <form id="addTaskForm">
@@ -178,7 +184,7 @@
     <!-- Модалка вопроса опросника -->
     <div class="modal-overlay" id="surveyModal">
       <div class="modal">
-        <div class="close" id="closeSurveyModal">✕</div>
+        <button type="button" class="close" id="closeSurveyModal" aria-label="Закрыть окно вопроса" style="background:none;border:0;cursor:pointer;">✕</button>
         <h3 id="surveyModalTitle">Новый вопрос</h3>
         <div id="surveyModalAlert" class="alert"></div>
         <form id="surveyForm">
@@ -187,6 +193,13 @@
             <textarea id="sqText" rows="2" maxlength="500" placeholder="например, Насколько тебе понравилась ярмарка?" required></textarea>
           </div>
           <div class="form-group">
+            <label for="sqType">Тип ответа</label>
+            <select id="sqType">
+              <option value="choice">Выбор одного варианта</option>
+              <option value="text">Свободный текст</option>
+            </select>
+          </div>
+          <div class="form-group" id="sqOptionsGroup">
             <label for="sqOptions">Варианты ответа — по одному в строке</label>
             <textarea id="sqOptions" rows="6" maxlength="1700" placeholder="Отлично&#10;Хорошо&#10;Можно лучше" required></textarea>
             <div class="small" style="margin-top:6px;">От 2 до 8 вариантов. Участник выбирает один.</div>
@@ -206,6 +219,6 @@
   <script src="team-form.js?v=11"></script>
   <script src="qrcode.min.js?v=11"></script>
   <script src="print-qr.js?v=12"></script>
-  <script src="admin.js?v=11"></script>
+  <script src="admin.js?v=14"></script>
 </body>
 </html>

@@ -39,6 +39,13 @@ function parseObject(value) {
   return {};
 }
 
+function questionOptions(body, fallback) {
+  const type = body.type === undefined ? (fallback && fallback.length === 0 ? 'text' : 'choice') : body.type;
+  if (!['text', 'choice'].includes(type)) throw new HttpError(400, 'Неизвестный тип вопроса');
+  if (type === 'text') return [];
+  return normalizeOptions(body.options === undefined ? fallback : body.options);
+}
+
 function normalizeOptions(input) {
   if (!Array.isArray(input)) {
     throw new HttpError(400, 'Варианты ответа: нужен список');
@@ -56,11 +63,14 @@ function normalizeOptions(input) {
 
 async function readQuestions() {
   const rows = await db.query('SELECT id, text, options FROM survey_questions ORDER BY position, created_at');
-  return rows.map((row) => ({ id: row.id, text: row.text, options: parseArray(row.options) }));
+  return rows.map((row) => {
+    const options = parseArray(row.options);
+    return { id: row.id, text: row.text, options, type: options.length ? 'choice' : 'text' };
+  });
 }
 
 function publicQuestions(questions) {
-  return questions.map((question) => ({ id: question.id, text: question.text, options: question.options }));
+  return questions.map((question) => ({ id: question.id, text: question.text, options: question.options, type: question.type }));
 }
 
 /* ---------- вопросы: чтение (любая авторизованная роль) ---------- */
@@ -97,7 +107,12 @@ router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, r
   const answers = {};
   raw.forEach((value, index) => {
     const question = questions[index];
-    const choice = Number(value);
+    if (question.type === 'text') {
+      if (typeof value !== 'string') throw new HttpError(400, 'Вопрос ' + (index + 1) + ': введите текст');
+      answers[question.id] = str(value, { field: 'Ответ на вопрос ' + (index + 1), max: 2000 });
+      return;
+    }
+    const choice = value;
     if (!Number.isInteger(choice) || choice < 0 || choice >= question.options.length) {
       throw new HttpError(400, 'Некорректный ответ на вопрос ' + (index + 1));
     }
@@ -120,12 +135,23 @@ router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, r
 /* ---------- конструктор: сводка ответов ---------- */
 router.get('/results', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const questions = await readQuestions();
-  const responses = await db.query('SELECT user_id, answers FROM survey_responses');
+  const responses = await db.query(`SELECT r.user_id, r.answers, r.submitted_at, u.username, u.team
+    FROM survey_responses r JOIN users u ON u.id = r.user_id ORDER BY r.submitted_at DESC`);
   const total = await db.one("SELECT COUNT(*) AS total FROM users WHERE role = 'participant'");
 
   const maps = responses.map((row) => parseObject(row.answers));
 
   const stats = questions.map((question) => {
+    if (question.type === 'text') {
+      const textAnswers = responses.flatMap((row) => {
+        const text = parseObject(row.answers)[question.id];
+        return typeof text === 'string' && text.trim() ? [{
+          team: row.team || row.username, username: row.username, text,
+          submittedAt: Number(row.submitted_at),
+        }] : [];
+      });
+      return { ...question, counts: [], textAnswers, answered: textAnswers.length };
+    }
     const counts = question.options.map(() => 0);
     maps.forEach((answers) => {
       const choice = answers[question.id];
@@ -134,6 +160,7 @@ router.get('/results', requireAuth, requireRole('admin'), ah(async (req, res) =>
     return {
       id: question.id,
       text: question.text,
+      type: question.type,
       options: question.options,
       counts,
       answered: counts.reduce((sum, value) => sum + value, 0),
@@ -150,7 +177,7 @@ router.get('/results', requireAuth, requireRole('admin'), ah(async (req, res) =>
 /* ---------- конструктор: создание вопроса ---------- */
 router.post('/questions', requireAuth, requireRole('admin'), ah(async (req, res) => {
   const text = str(req.body.text, { field: 'Вопрос', min: 3, max: 500 });
-  const options = normalizeOptions(req.body.options);
+  const options = questionOptions(req.body);
 
   const row = await db.one('SELECT COALESCE(MAX(position), 0) AS max_position FROM survey_questions');
   const id = 'q' + crypto.randomBytes(5).toString('hex');
@@ -160,7 +187,7 @@ router.post('/questions', requireAuth, requireRole('admin'), ah(async (req, res)
     [id, text, JSON.stringify(options), Number(row.max_position) + 1, Date.now()]
   );
 
-  res.status(201).json({ question: { id, text, options } });
+  res.status(201).json({ question: { id, text, options, type: options.length ? 'choice' : 'text' } });
 }));
 
 /* ---------- конструктор: изменение вопроса ---------- */
@@ -172,9 +199,13 @@ router.patch('/questions/:id', requireAuth, requireRole('admin'), ah(async (req,
   const text = req.body.text === undefined
     ? current.text
     : str(req.body.text, { field: 'Вопрос', min: 3, max: 500 });
-  const options = req.body.options === undefined
-    ? parseArray(current.options)
-    : normalizeOptions(req.body.options);
+  const options = questionOptions(req.body, parseArray(current.options));
+  if (JSON.stringify(options) !== JSON.stringify(parseArray(current.options))) {
+    const responses = await db.query('SELECT answers FROM survey_responses');
+    if (responses.some((row) => Object.prototype.hasOwnProperty.call(parseObject(row.answers), id))) {
+      throw new HttpError(409, 'На этот вопрос уже ответили. Тип и варианты менять нельзя; создайте новый вопрос.');
+    }
+  }
 
   await db.query('UPDATE survey_questions SET text = ?, options = ? WHERE id = ?', [text, JSON.stringify(options), id]);
 

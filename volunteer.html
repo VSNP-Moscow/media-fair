@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Волонтёр</title>
   <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="event-theme.css?v=1">
 </head>
 <body>
   <header class="topbar">
@@ -25,7 +26,8 @@
     <div class="page-header">
       <div>
         <h2><span class="mark-inline">📱</span>Сканирование и начисление</h2>
-        <div class="subtitle">Отсканируй QR-код участника или введи код вручную, затем начисли баллы команде. Повторно за одно задание начислить нельзя.</div>
+        <div class="subtitle">Сканируйте QR команды после выполнения задания — станция отметится пройденной автоматически. Повторный скан не добавит баллы.</div>
+        <p id="assignedStation" class="small" role="status">Проверяем назначенную станцию…</p>
       </div>
     </div>
 
@@ -106,6 +108,6 @@
   <script src="app.js?v=11"></script>
   <!-- html5-qrcode сканер (опционально, требует интернета) -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" onerror="window.__mfScannerUnavailable=true;"></script>
-  <script src="volunteer.js?v=11"></script>
+  <script src="volunteer.js?v=15"></script>
 </body>
 </html>

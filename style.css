@@ -361,3 +361,143 @@ tr:hover td { background: var(--surface-hover); }
   .snake-stats { gap: 16px; font-size: 0.9rem; }
   .qr-code-text { font-size: 0.8rem; }
 }
+
+/* ---------- Администратор: независимая адаптивная раскладка ---------- */
+body.admin-page { height: auto; min-height: 100vh; }
+.admin-page .container { width: 100%; max-width: 1440px; padding-inline: 28px; }
+.admin-page .topbar .container { height: auto; min-height: 76px; padding-block: 12px; gap: 16px 24px; flex-wrap: wrap; }
+.admin-page .brand { min-width: 0; }
+.admin-page .brand .mark { flex-shrink: 0; }
+.admin-page .brand > span { min-width: 0; overflow-wrap: anywhere; }
+.admin-page .user-info { min-width: 0; max-width: 100%; flex-wrap: wrap; gap: 8px 12px; }
+.admin-page #headerUser { min-width: 0; overflow-wrap: anywhere; }
+.admin-page .page-header { align-items: flex-start; gap: 16px 24px; }
+.admin-page .page-header > div { flex: 1 1 360px; min-width: 0; }
+.admin-page .page-header h2 { line-height: 1.3; margin-bottom: 8px; }
+.admin-page .page-header .subtitle { max-width: 780px; }
+.admin-page .page-header > button { flex: 0 1 auto; }
+.admin-page .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; }
+.admin-page .grid-2 > .card:nth-child(-n+4) { grid-column: 1 / -1; }
+.admin-page .card { min-width: 0; padding: 24px; }
+.admin-page .card > div:first-child { flex-wrap: wrap; gap: 12px; }
+.admin-page .card h3 { line-height: 1.4; }
+.admin-page .card > div:first-child > h3 { margin-bottom: 0; }
+.admin-page .card > div:first-child > div { min-width: 0; max-width: 100%; }
+.admin-page .badge, .admin-page .tag { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.admin-page .actions { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; }
+.admin-page .actions > button { width: auto; }
+.admin-page :is(button, .btn, .btn-sm, .btn-logout) { min-height: 44px; min-width: 44px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.admin-page button:disabled { cursor: not-allowed; opacity: 0.55; }
+.admin-page :is(button, a, .close):focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.admin-page :is(input, select, textarea) { min-width: 0; max-width: 100%; }
+.admin-page input:not([type="checkbox"]):not([type="hidden"]), .admin-page select { min-height: 44px; }
+.admin-page input[type="checkbox"] { width: 20px !important; height: 20px; flex: 0 0 20px; }
+.admin-page label:has(input[type="checkbox"]) { min-height: 44px; }
+.admin-page :is(.small, .alert, .refresh-hint, .survey-q) { overflow-wrap: anywhere; }
+.admin-page .table-wrap { overflow: visible; }
+.admin-page table { table-layout: fixed; }
+.admin-page :is(th, td) { padding: 14px 12px; overflow-wrap: anywhere; }
+.admin-page th { font-size: 0.75rem; letter-spacing: 0.3px; }
+.admin-page td .actions { margin-top: 0; }
+.admin-page .table-wrap .btn-sm { padding-inline: 10px; }
+.admin-page table:has(#usersTableBody) th:nth-child(1) { width: 13%; }
+.admin-page table:has(#usersTableBody) th:nth-child(2) { width: 13%; }
+.admin-page table:has(#usersTableBody) th:nth-child(3) { width: 13%; }
+.admin-page table:has(#usersTableBody) th:nth-child(4) { width: 20%; }
+.admin-page table:has(#usersTableBody) th:nth-child(5) { width: 14%; }
+.admin-page table:has(#usersTableBody) th:nth-child(6) { width: 7%; }
+.admin-page table:has(#usersTableBody) th:nth-child(7) { width: 20%; }
+.admin-page table:has(#tasksTableBody) th:nth-child(1) { width: 38%; }
+.admin-page table:has(#tasksTableBody) th:nth-child(2) { width: 15%; }
+.admin-page table:has(#tasksTableBody) th:nth-child(3) { width: 9%; }
+.admin-page table:has(#tasksTableBody) th:nth-child(4) { width: 18%; }
+.admin-page table:has(#tasksTableBody) th:nth-child(5) { width: 20%; }
+.admin-page .survey-q-head { flex-wrap: wrap; }
+.admin-page .survey-q-head > div { min-width: 0; max-width: 100%; }
+.admin-page .survey-q-head > div:first-child { flex: 1 1 320px; }
+.admin-page .survey-q-head .actions { flex: 0 1 auto; }
+.admin-page #adminLeaderboard .lb-row { grid-template-columns: 28px minmax(0, 1fr) 84px 70px; padding: 12px; gap: 10px; }
+.admin-page #adminLeaderboard .lb-row > div { min-width: 0; overflow-wrap: anywhere; }
+.admin-page #adminLeaderboard .lb-row.header { font-size: 0.68rem; letter-spacing: 0; }
+.admin-page .modal-overlay { padding: 24px; overflow-y: auto; overscroll-behavior: contain; }
+.admin-page .modal { min-width: 0; margin: auto; max-width: 560px; max-height: calc(100vh - 48px); max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.admin-page #addUserModal .modal { max-width: 960px; }
+.admin-page .modal h3 { padding-right: 42px; overflow-wrap: anywhere; }
+.admin-page .modal .close { display: grid; place-items: center; width: 44px; height: 44px; top: 8px; right: 8px; border-radius: 10px; cursor: pointer; }
+.admin-page .modal .close:hover { background: var(--surface-hover); color: var(--text); }
+.admin-page .modal .actions { justify-content: flex-end; }
+.admin-page #auMembers > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.admin-page #auMembers fieldset { min-width: 0; margin-block: 8px 12px !important; padding: 14px !important; background: #f8fafc; border-radius: 12px !important; }
+.admin-page #auMembers legend { padding-inline: 6px; font-size: 0.9rem; font-weight: 700; }
+.admin-page #auMembers .form-group { margin-bottom: 12px; }
+.admin-page #auMembers fieldset .btn-sm { width: 100%; }
+.admin-page #auMembers > .small { margin-bottom: 8px; }
+
+@media (max-width: 1000px) {
+  .admin-page .container { padding-inline: 20px; }
+  .admin-page .grid-2 { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .admin-page .table-wrap { border: 0; border-radius: 0; overflow: visible; background: transparent; }
+  .admin-page .table-wrap table { display: block; width: 100%; }
+  /* Сохраняем заголовки для вспомогательных технологий. */
+  .admin-page .table-wrap thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .admin-page .table-wrap tbody { display: grid; gap: 16px; width: 100%; }
+  .admin-page .table-wrap tr { display: block; min-width: 0; border: 1px solid var(--border); border-radius: 14px; padding: 4px 16px; background: var(--surface); }
+  .admin-page .table-wrap td { display: block; min-width: 0; padding: 12px 0; border: 0; border-bottom: 1px solid var(--border); text-align: left; }
+  .admin-page .table-wrap td:last-child { border-bottom: 0; }
+  .admin-page .table-wrap tr:hover td { background: transparent; }
+  .admin-page .table-wrap td:not([colspan])::before { display: block; margin-bottom: 5px; color: var(--text-muted); font-family: inherit; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em; line-height: 1.4; word-break: normal; }
+  .admin-page #usersTableBody td:nth-child(1)::before { content: "Логин"; }
+  .admin-page #usersTableBody td:nth-child(2)::before { content: "Роль"; }
+  .admin-page #usersTableBody td:nth-child(3)::before { content: "Команда"; }
+  .admin-page #usersTableBody td:nth-child(4)::before { content: "Состав команды"; }
+  .admin-page #usersTableBody td:nth-child(5)::before { content: "QR-код"; }
+  .admin-page #usersTableBody td:nth-child(6)::before { content: "Очков"; }
+  .admin-page #usersTableBody td:nth-child(7)::before { content: "Действия"; }
+  .admin-page #tasksTableBody td:nth-child(1)::before { content: "Название"; }
+  .admin-page #tasksTableBody td:nth-child(2)::before { content: "Тип"; }
+  .admin-page #tasksTableBody td:nth-child(3)::before { content: "Очки"; }
+  .admin-page #tasksTableBody td:nth-child(4)::before { content: "Координаты"; }
+  .admin-page #tasksTableBody td:nth-child(5)::before { content: "Действия"; }
+  .admin-page .table-wrap td[colspan] { text-align: center; }
+  .admin-page .table-wrap td[colspan]::before { content: none; }
+  .admin-page .table-wrap td .actions { gap: 8px; }
+  .admin-page #adminLeaderboard .lb-row { grid-template-columns: 28px minmax(0, 1fr) 84px 70px; }
+}
+
+@media (max-width: 720px) {
+  .admin-page .topbar { position: relative; }
+  .admin-page .topbar .container { align-items: flex-start; gap: 12px; }
+  .admin-page .brand { flex: 1 1 100%; font-size: 1.1rem; gap: 10px; }
+  .admin-page .brand > span > span { display: block; }
+  .admin-page .user-info { width: 100%; }
+  .admin-page #btnLogout { margin-left: auto; flex-shrink: 0; }
+  .admin-page .page-header { flex-direction: column; align-items: stretch; margin-bottom: 20px; }
+  .admin-page .page-header > div { flex-basis: auto; width: 100%; }
+  .admin-page #btnRefresh { width: 100% !important; }
+  .admin-page .page-header h2 { font-size: 1.4rem; }
+  .admin-page #auMembers > div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .admin-page .modal-overlay { padding: 12px; }
+  .admin-page .modal { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); padding: 24px 20px; }
+  .admin-page .modal :is(input, select, textarea) { font-size: 1rem; }
+  .admin-page .modal .actions > button { flex: 1 1 120px; }
+  .admin-page .survey-q { padding: 16px; }
+  .admin-page .survey-q-head { flex-direction: column; align-items: stretch; }
+  .admin-page .survey-q-head > div:first-child { flex-basis: auto; }
+  .admin-page .survey-q-head .actions > button { flex: 1 1 120px; }
+}
+
+@media (max-width: 480px) {
+  .admin-page .container { padding-inline: 12px; }
+  .admin-page .card { padding: 18px 14px; border-radius: 16px; }
+  .admin-page .card > div:first-child { align-items: flex-start !important; }
+  .admin-page .card > div:first-child > div { flex-wrap: wrap; }
+  .admin-page .table-wrap tr { padding-inline: 12px; }
+  .admin-page .table-wrap td .actions > button { flex: 1 1 100px; }
+  .admin-page #btnToggleEvent { width: 100% !important; }
+  .admin-page #adminLeaderboard .lb-row { grid-template-columns: 22px minmax(0, 1fr) 64px 50px; gap: 6px; padding: 10px 8px; font-size: 0.8rem; }
+  .admin-page #adminLeaderboard .lb-row.header { font-size: 0.6rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-page *, .admin-page *::before, .admin-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

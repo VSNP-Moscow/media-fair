@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS tasks (
   KEY idx_type (type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS volunteer_stations (
+  user_id VARCHAR(24) NOT NULL PRIMARY KEY,
+  task_id VARCHAR(24) NOT NULL,
+  KEY idx_volunteer_station_task (task_id),
+  CONSTRAINT fk_volunteer_station_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_volunteer_station_task FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Журнал начислений. Одна строка на пару (участник, задание):
 -- защищает от повторного начисления за одну и ту же станцию/квиз/игру.
 CREATE TABLE IF NOT EXISTS awards (

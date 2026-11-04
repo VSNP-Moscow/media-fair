@@ -134,7 +134,9 @@ router.post('/login', async (req, res, next) => {
     }
 
     const user = await db.one(
-      'SELECT id, username, password_hash, role, team, qr FROM users WHERE username = ?',
+      `SELECT u.id, u.username, u.password_hash, u.role, u.team, u.qr, vs.task_id AS stationId
+         FROM users u LEFT JOIN volunteer_stations vs ON vs.user_id = u.id AND u.role = 'volunteer'
+        WHERE u.username = ?`,
       [username]
     );
     // Одинаковый ответ для «нет пользователя» и «неверный пароль».

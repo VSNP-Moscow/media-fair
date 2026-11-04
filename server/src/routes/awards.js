@@ -2,7 +2,6 @@
 
 const express = require('express');
 const db = require('../db');
-const events = require('../event');
 const { HttpError, ah, str, intVal, idOf } = require('../util');
 const { requireAuth, requireRole } = require('../auth');
 
@@ -23,41 +22,53 @@ async function totalFor(userId, conn = db) {
 
 /* ---------- начисление (волонтёр, админ) ---------- */
 router.post('/', requireAuth, requireRole('volunteer', 'admin'), ah(async (req, res) => {
-  // Во время остановки начисления закрыты для волонтёров;
-  // администратор может исправить очки вручную в любой момент.
-  if (req.user.role !== 'admin' && !(await events.isActive())) {
-    throw new HttpError(409, 'Мероприятие остановлено — начисления недоступны.');
-  }
-
   const userId = idOf(req.body.userId, 'Участник');
-  const taskId = req.body.taskId ? idOf(req.body.taskId, 'Задание') : '';
+  const requestedTaskId = req.body.taskId ? idOf(req.body.taskId, 'Задание') : '';
   const note = str(req.body.note, { field: 'Комментарий', max: 255, required: false });
-
-  const user = await db.one("SELECT id, username, team FROM users WHERE id = ? AND role = 'participant'", [userId]);
-  if (!user) throw new HttpError(404, 'Участник не найден');
-
-  const task = taskId ? await db.one('SELECT * FROM tasks WHERE id = ?', [taskId]) : null;
-  if (taskId && !task) throw new HttpError(404, 'Задание не найдено');
-  if (req.user.role === 'volunteer' && (!task || task.type !== 'station')) {
-    throw new HttpError(400, 'Выберите станцию мероприятия.');
-  }
-
-  let points;
-  if (task && task.type === 'station') {
-    // Очки за станцию задаёт администратор в задании, а не волонтёр.
-    points = Number(task.points);
-  } else if (req.user.role === 'admin' && req.body.points !== undefined) {
-    points = intVal(req.body.points, { field: 'Баллы', min: 0, max: 10000, def: 0 });
-  } else if (task) {
-    points = Number(task.points);
-  } else {
-    points = await settingNumber('station_points', 50);
-  }
-
-  const kind = task ? task.type : 'manual';
 
   try {
     const entry = await db.tx(async (conn) => {
+      let taskId = requestedTaskId;
+      if (req.user.role === 'volunteer') {
+        const [flags] = await conn.query("SELECT v FROM settings WHERE k = 'event_active' FOR SHARE");
+        if (flags.length && flags[0].v !== '' && String(flags[0].v) !== '1') {
+          throw new HttpError(409, 'Мероприятие остановлено — начисления недоступны.');
+        }
+        const [volunteers] = await conn.query('SELECT role FROM users WHERE id = ? FOR UPDATE', [req.user.id]);
+        if (!volunteers.length || volunteers[0].role !== 'volunteer') {
+          throw new HttpError(403, 'Роль пользователя изменилась. Обновите страницу.');
+        }
+        const [assignments] = await conn.query('SELECT task_id FROM volunteer_stations WHERE user_id = ? FOR UPDATE', [req.user.id]);
+        if (!assignments.length) {
+          throw new HttpError(409, 'Вам не назначена станция. Обратитесь к администратору.');
+        }
+        taskId = assignments[0].task_id;
+        if (requestedTaskId && requestedTaskId !== taskId) {
+          throw new HttpError(403, 'Можно начислять баллы только за назначенную вам станцию.');
+        }
+      }
+
+      const [users] = await conn.query("SELECT id, username, team FROM users WHERE id = ? AND role = 'participant' FOR UPDATE", [userId]);
+      const user = users[0];
+      if (!user) throw new HttpError(404, 'Участник не найден');
+      const [tasks] = taskId ? await conn.query('SELECT * FROM tasks WHERE id = ? FOR SHARE', [taskId]) : [[]];
+      const task = tasks[0] || null;
+      if (req.user.role === 'volunteer' && (!task || task.type !== 'station')) {
+        throw new HttpError(409, 'Назначенная станция недоступна. Обратитесь к администратору.');
+      }
+      if (taskId && !task) throw new HttpError(404, 'Задание не найдено');
+
+      let points;
+      if (task && task.type === 'station') {
+        points = Number(task.points);
+      } else if (req.user.role === 'admin' && req.body.points !== undefined) {
+        points = intVal(req.body.points, { field: 'Баллы', min: 0, max: 10000, def: 0 });
+      } else if (task) {
+        points = Number(task.points);
+      } else {
+        points = await settingNumber('station_points', 50);
+      }
+      const kind = task ? task.type : 'manual';
       const [dup] = await conn.query(
         'SELECT id, points FROM awards WHERE user_id = ? AND task_id = ?',
         [userId, taskId]
@@ -77,14 +88,14 @@ router.post('/', requireAuth, requireRole('volunteer', 'admin'), ah(async (req, 
         'SELECT COALESCE(SUM(points), 0) AS total FROM awards WHERE user_id = ?',
         [userId]
       );
-      return { total: Number(totals[0].total) };
+      return { total: Number(totals[0].total), points, user };
     });
 
     res.status(201).json({
       ok: true,
-      points,
+      points: entry.points,
       totalPoints: entry.total,
-      user: { id: user.id, username: user.username, team: user.team },
+      user: { id: entry.user.id, username: entry.user.username, team: entry.user.team },
     });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {

@@ -39,7 +39,9 @@
     if (submitted) return;
     $('surveyFields').innerHTML = questions.map((question, index) =>
       '<fieldset class="survey-field"><legend>' + (index + 1) + '. ' + esc(question.text) + '</legend>' +
-      question.options.map((option, choice) => '<label class="survey-choice"><input type="radio" name="sq_' + esc(question.id) + '" value="' + choice + '"><span>' + esc(option) + '</span></label>').join('') + '</fieldset>'
+      (question.type === 'text'
+        ? '<label for="sq_text_' + index + '">Ваш ответ (до 2000 символов)</label><textarea id="sq_text_' + index + '" name="sq_' + esc(question.id) + '" rows="4" maxlength="2000" required></textarea>'
+        : (question.options || []).map((option, choice) => '<label class="survey-choice"><input type="radio" name="sq_' + esc(question.id) + '" value="' + choice + '"><span>' + esc(option) + '</span></label>').join('')) + '</fieldset>'
     ).join('');
   }
 
@@ -48,7 +50,8 @@
     surveyOpen = !!data.open;
     const next = data.questions || [];
     const nextSignature = JSON.stringify(next);
-    const dirty = !!document.querySelector('#surveyFields input:checked');
+    const dirty = !!document.querySelector('#surveyFields input:checked') ||
+      Array.from(document.querySelectorAll('#surveyFields textarea')).some((field) => field.value.length > 0);
     if (force || submitted !== !!data.submitted || (!dirty && signature !== nextSignature)) {
       questions = next;
       signature = nextSignature;
@@ -78,9 +81,19 @@
     if (!surveyOpen) return MF.showAlert('surveyAlert', 'Опрос закрыт организаторами.');
     const answers = [];
     for (let i = 0; i < questions.length; i += 1) {
-      const checked = document.querySelector('input[name="sq_' + questions[i].id + '"]:checked');
-      if (!checked) return MF.showAlert('surveyAlert', 'Ответьте на вопрос ' + (i + 1) + '.');
-      answers.push(Number(checked.value));
+      if (questions[i].type === 'text') {
+        const field = $('sq_text_' + i);
+        const text = field.value.trim();
+        if (!text || text.length > 2000) {
+          field.focus();
+          return MF.showAlert('surveyAlert', 'Ответьте на вопрос ' + (i + 1) + ' (до 2000 символов).');
+        }
+        answers.push(text);
+      } else {
+        const checked = document.querySelector('input[name="sq_' + questions[i].id + '"]:checked');
+        if (!checked) return MF.showAlert('surveyAlert', 'Ответьте на вопрос ' + (i + 1) + '.');
+        answers.push(Number(checked.value));
+      }
     }
     const btn = $('btnSurveySubmit');
     btn.disabled = true;
