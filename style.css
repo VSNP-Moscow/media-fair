@@ -377,7 +377,6 @@ body.admin-page { height: auto; min-height: 100vh; }
 .admin-page .page-header .subtitle { max-width: 780px; }
 .admin-page .page-header > button { flex: 0 1 auto; }
 .admin-page .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; }
-.admin-page .grid-2 > .card:nth-child(-n+4) { grid-column: 1 / -1; }
 .users-page .grid-2 { grid-template-columns: minmax(0, 1fr); }
 .users-page .grid-2 > .users-card { grid-column: 1 / -1; width: 100%; }
 .users-page .users-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
