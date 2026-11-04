@@ -84,10 +84,12 @@ router.get('/', requireAuth, ah(async (req, res) => {
     [req.user.id]
   );
 
+  const saved = response ? parseObject(response.answers) : {};
+  const pending = questions.filter((question) => !Object.prototype.hasOwnProperty.call(saved, question.id));
   res.json({
-    questions: publicQuestions(questions),
+    questions: publicQuestions(pending.length ? pending : questions),
     open: await events.isSurveyOpen(),
-    submitted: !!response,
+    submitted: questions.length > 0 && pending.length === 0,
     answeredAt: response ? Number(response.submitted_at) : null,
     answers: response ? parseObject(response.answers) : null,
   });
@@ -99,8 +101,12 @@ router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, r
     throw new HttpError(409, 'Опросник закрыт организаторами.');
   }
 
-  const questions = await readQuestions();
-  if (questions.length === 0) throw new HttpError(409, 'Опросник пока не готов.');
+  const allQuestions = await readQuestions();
+  const previous = await db.one('SELECT answers FROM survey_responses WHERE user_id = ?', [req.user.id]);
+  const saved = previous ? parseObject(previous.answers) : {};
+  const questions = allQuestions.filter((question) => !Object.prototype.hasOwnProperty.call(saved, question.id));
+  if (allQuestions.length === 0) throw new HttpError(409, 'Опросник пока не готов.');
+  if (questions.length === 0) throw new HttpError(409, 'Вы уже ответили на все текущие вопросы.');
 
   const raw = req.body.answers;
   if (!Array.isArray(raw) || raw.length !== questions.length) {
@@ -130,15 +136,19 @@ router.post('/submit', requireAuth, requireRole('participant'), ah(async (req, r
     answers[question.id] = choice;
   });
 
-  try {
-    await db.query(
-      'INSERT INTO survey_responses (user_id, answers, submitted_at) VALUES (?,?,?)',
-      [req.user.id, JSON.stringify(answers), Date.now()]
+  await db.tx(async (conn) => {
+    await conn.query('SELECT id FROM users WHERE id = ? FOR UPDATE', [req.user.id]);
+    const [rows] = await conn.query('SELECT answers FROM survey_responses WHERE user_id = ? FOR UPDATE', [req.user.id]);
+    const current = rows.length ? parseObject(rows[0].answers) : {};
+    if (Object.keys(answers).some((id) => Object.prototype.hasOwnProperty.call(current, id))) {
+      throw new HttpError(409, 'Эти ответы уже сохранены. Обновите опросник.');
+    }
+    await conn.query(
+      `INSERT INTO survey_responses (user_id, answers, submitted_at) VALUES (?,?,?)
+       ON DUPLICATE KEY UPDATE answers = VALUES(answers), submitted_at = VALUES(submitted_at)`,
+      [req.user.id, JSON.stringify({ ...current, ...answers }), Date.now()]
     );
-  } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'Вы уже отправили ответы на опросник.');
-    throw err;
-  }
+  });
 
   res.status(201).json({ ok: true, answers });
 }));

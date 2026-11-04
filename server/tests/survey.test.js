@@ -70,7 +70,7 @@ test('multiple validates distinct nonempty integer indices without coercion', as
   }
   const h = harness([multiple]);
   assert.deepEqual((await h.call('post /submit', { answers: [[0, 2]] })).answers, { q1: [0, 2] });
-  assert.deepEqual(JSON.parse(h.writes[0].params[1]), { q1: [0, 2] });
+  assert.deepEqual(JSON.parse(h.writes.find((write) => write.sql.includes('INSERT INTO survey_responses')).params[1]), { q1: [0, 2] });
 });
 
 test('legacy inference and mixed multi-question submissions stay compatible', async () => {
