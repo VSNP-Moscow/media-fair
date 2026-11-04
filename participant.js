@@ -10,6 +10,11 @@
   let submitted = false;
   let signature = '';
   let refreshing = false;
+  let mapImages = [];
+  let mapSignature = '';
+  let activeFloor = null;
+  let mapToken = 0;
+  const mapUrls = new Map();
 
   function applyFlags(flags) {
     $('qrCard').style.display = flags.active ? '' : 'none';
@@ -61,6 +66,142 @@
     } else {
       $('surveyCard').style.display = surveyOpen && questions.length ? '' : 'none';
     }
+  }
+
+  /* ---------- карта станций ---------- */
+  function mapFloors() {
+    return Array.from(new Set(mapImages.map((image) => image.floor))).sort((a, b) => a - b);
+  }
+
+  function mapCacheKey(image) {
+    return image.id + ':' + image.updatedAt;
+  }
+
+  async function mapUrl(image) {
+    const cached = mapUrls.get(image.id);
+    if (cached && cached.key === mapCacheKey(image)) return cached.url;
+    const blob = await MF.getMapImageBlob(image.id);
+    const url = URL.createObjectURL(blob);
+    if (cached) URL.revokeObjectURL(cached.url);
+    mapUrls.set(image.id, { url, key: mapCacheKey(image) });
+    return url;
+  }
+
+  function pruneMapUrls() {
+    const ids = new Set(mapImages.map((image) => image.id));
+    mapUrls.forEach((cached, id) => {
+      if (!ids.has(id)) {
+        URL.revokeObjectURL(cached.url);
+        mapUrls.delete(id);
+      }
+    });
+  }
+
+  function renderMapFloors() {
+    const box = $('mapFloors');
+    const floors = mapFloors();
+    box.innerHTML = '';
+    box.hidden = floors.length === 0;
+    floors.forEach((floor) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'map-floor-tab';
+      button.textContent = floor + ' этаж';
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-selected', String(floor === activeFloor));
+      button.addEventListener('click', () => {
+        if (floor === activeFloor) return;
+        activeFloor = floor;
+        renderMapFloors();
+        renderMapGallery().catch(() => {});
+      });
+      box.appendChild(button);
+    });
+  }
+
+  async function renderMapGallery() {
+    const gallery = $('mapGallery');
+    const floors = mapFloors();
+    if (floors.length === 0) {
+      gallery.innerHTML = '';
+      gallery.hidden = true;
+      return;
+    }
+    if (!floors.includes(activeFloor)) activeFloor = floors[0];
+    renderMapFloors();
+    gallery.hidden = false;
+
+    const token = ++mapToken;
+    const items = mapImages.filter((image) => image.floor === activeFloor);
+    gallery.innerHTML = '<p class="small map-loading" role="status">Загружаем изображения…</p>';
+    try {
+      const pictures = await Promise.all(items.map(async (image) => ({ image, url: await mapUrl(image) })));
+      if (token !== mapToken) return;
+      gallery.innerHTML = '';
+      pictures.forEach(({ image, url }, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'map-photo';
+        button.setAttribute('aria-label', 'Открыть карту: ' + image.floor + ' этаж, фото ' + (index + 1));
+
+        const picture = document.createElement('img');
+        picture.src = url;
+        picture.alt = 'Карта станций: ' + image.floor + ' этаж, фото ' + (index + 1);
+        picture.loading = 'lazy';
+        button.appendChild(picture);
+
+        const caption = document.createElement('span');
+        caption.className = 'map-photo-label';
+        caption.textContent = 'Фото ' + (index + 1) + ' · нажмите, чтобы увеличить';
+        button.appendChild(caption);
+        button.addEventListener('click', () => openMapLightbox(image));
+        gallery.appendChild(button);
+      });
+    } catch (err) {
+      if (token !== mapToken) return;
+      gallery.innerHTML = '';
+      const message = document.createElement('p');
+      message.className = 'small';
+      message.textContent = 'Не удалось загрузить карту: ' + err.message;
+      gallery.appendChild(message);
+    }
+  }
+
+  async function loadMap(force) {
+    const data = await MF.getMapImages();
+    const next = Array.isArray(data.images) ? data.images : [];
+    const nextSignature = JSON.stringify(next.map((image) => [image.id, image.floor, image.position, image.updatedAt]));
+    if (!force && nextSignature === mapSignature) return;
+
+    mapImages = next;
+    mapSignature = nextSignature;
+    pruneMapUrls();
+    const floors = mapFloors();
+    if (!floors.includes(activeFloor)) activeFloor = floors[0] || null;
+
+    $('mapHint').textContent = floors.length
+      ? 'Выберите этаж и нажмите на фото, чтобы увеличить.'
+      : 'Организаторы ещё не добавили карту. Пока ориентируйтесь по названиям этапов и указателям на площадке.';
+    $('mapCard').classList.toggle('map-empty', floors.length === 0);
+    await renderMapGallery();
+  }
+
+  function openMapLightbox(image) {
+    const cached = mapUrls.get(image.id);
+    if (!cached) return;
+    const index = mapImages.filter((item) => item.floor === image.floor).findIndex((item) => item.id === image.id);
+    $('mapLightboxImage').src = cached.url;
+    $('mapLightboxImage').alt = 'Карта станций: ' + image.floor + ' этаж, фото ' + (index + 1);
+    $('mapLightboxCaption').textContent = image.floor + ' этаж · фото ' + (index + 1);
+    $('mapLightbox').hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('mapLightboxClose').focus();
+  }
+
+  function closeMapLightbox() {
+    $('mapLightbox').hidden = true;
+    $('mapLightboxImage').src = '';
+    document.body.style.overflow = '';
   }
 
   async function refresh() {
@@ -124,8 +265,24 @@
     MF.generateQRCode('qrContainer', user.qr, 260);
     $('btnLogout').addEventListener('click', () => MF.logout());
     $('btnPrintQr').addEventListener('click', () => window.MF_PRINT(user));
+    $('mapLightboxClose').addEventListener('click', closeMapLightbox);
+    $('mapLightbox').addEventListener('click', (event) => {
+      if (event.target === $('mapLightbox')) closeMapLightbox();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !$('mapLightbox').hidden) closeMapLightbox();
+    });
+
     await refresh();
+    loadMap(true).catch(() => {
+      $('mapHint').textContent = 'Не удалось загрузить карту. Обновите страницу.';
+    });
     const timer = setInterval(refresh, 5000);
-    window.addEventListener('beforeunload', () => clearInterval(timer));
+    const mapTimer = setInterval(() => loadMap(false).catch(() => {}), 60000);
+    window.addEventListener('beforeunload', () => {
+      clearInterval(timer);
+      clearInterval(mapTimer);
+      mapUrls.forEach((cached) => URL.revokeObjectURL(cached.url));
+    });
   })();
 })();

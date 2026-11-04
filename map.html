@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Карта станций</title>
+  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="event-theme.css?v=3">
+</head>
+<body class="admin-page map-page">
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <div class="mark">🗺</div>
+        <span>Медиаярмарка <span style="font-weight:500;font-size:0.9rem;color:var(--text-muted);">· Карта станций</span></span>
+      </div>
+      <div class="user-info">
+        <span class="badge admin" id="headerRole">Администратор</span>
+        <span id="headerUser" style="color:var(--text-muted);font-size:0.9rem;"></span>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top:26px;padding-bottom:40px;">
+    <div class="page-header">
+      <div>
+        <h2>Карта станций</h2>
+        <div class="subtitle">До 6 изображений. Участники увидят кнопки этажей и смогут открыть фото.</div>
+      </div>
+      <div class="actions" style="margin-top:0;">
+        <a class="btn-sm" href="admin.html">← Панель администратора</a>
+        <button class="btn-sm" id="btnRefresh" type="button">⟳ Обновить</button>
+      </div>
+    </div>
+
+    <div id="mapAlert" class="alert" role="status"></div>
+
+    <div class="grid map-admin-grid">
+      <section class="card accent-admin">
+        <h3>⬆ Загрузить изображение</h3>
+        <p class="small" style="margin-bottom:16px;">JPG, PNG или WebP. Фото автоматически сжимаются. Можно загрузить несколько файлов за раз.</p>
+        <form id="mapUploadForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mapFloor">Этаж</label>
+              <select id="mapFloor">
+                <option value="1">1 этаж</option>
+                <option value="2">2 этаж</option>
+                <option value="3">3 этаж</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="mapFiles">Изображения</label>
+              <input id="mapFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+            </div>
+          </div>
+          <div class="small" id="mapUploadHint" role="status" aria-live="polite">Свободно мест: 6.</div>
+          <div class="actions" style="margin-top:16px;">
+            <button class="btn-sm primary" type="submit" id="btnUploadMap">Загрузить</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card accent-admin">
+        <div class="map-list-head">
+          <h3>Фотографии карты</h3>
+          <span class="badge" id="mapCount" role="status">0 из 6</span>
+        </div>
+        <div id="mapAdminList" class="map-admin-list" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div class="map-lightbox" id="mapLightbox" role="dialog" aria-modal="true" aria-label="Просмотр изображения карты" hidden>
+      <button type="button" class="map-lightbox-close" id="mapLightboxClose" aria-label="Закрыть изображение">✕</button>
+      <img id="mapLightboxImage" alt="">
+    </div>
+  </main>
+
+  <script src="config.js?v=11"></script>
+  <script src="api.js?v=18"></script>
+  <script src="app.js?v=18"></script>
+  <script src="map.js?v=19"></script>
+</body>
+</html>

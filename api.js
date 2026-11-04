@@ -57,7 +57,7 @@
 
   async function requestBlob(path, options) {
     var opts = options || {};
-    var headers = { Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+    var headers = { Accept: opts.accept || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
     if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
     var token = getToken();
     if (token) headers.Authorization = 'Bearer ' + token;

@@ -15,6 +15,7 @@ const taskRoutes = require('./routes/tasks');
 const awardRoutes = require('./routes/awards');
 const quizRoutes = require('./routes/quiz');
 const surveyRoutes = require('./routes/survey');
+const mapRoutes = require('./routes/map');
 const gameRoutes = require('./routes/game');
 const settingsRoutes = require('./routes/settings');
 
@@ -47,7 +48,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '128kb' }));
+// 6 МБ: загрузка одного сжатого изображения карты в base64 (сам файл — до 4 МБ).
+app.use(express.json({ limit: '6mb' }));
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -75,6 +77,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/awards', awardRoutes);
 app.use('/api/quiz', (req, res) => res.status(410).json({ error: 'Викторина исключена из сценария мероприятия.' }));
 app.use('/api/survey', surveyRoutes);
+app.use('/api/map', mapRoutes);
 app.use('/api/game', (req, res) => res.status(410).json({ error: 'Игра исключена из сценария мероприятия.' }));
 app.use('/api/settings', settingsRoutes);
 
@@ -89,6 +92,9 @@ app.use((err, req, res, next) => {
   }
   if (err && err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Некорректный JSON в запросе' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Файл слишком большой. Максимум 4 МБ после сжатия.' });
   }
   console.error('[api] необработанная ошибка:', err);
   return res.status(500).json({ error: 'Внутренняя ошибка сервера' });

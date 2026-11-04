@@ -110,6 +110,19 @@ CREATE TABLE IF NOT EXISTS survey_question_types (
   CONSTRAINT fk_survey_question_type FOREIGN KEY (question_id) REFERENCES survey_questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Карта станций: до 6 изображений, распределённых по этажам 1–3.
+CREATE TABLE IF NOT EXISTS map_images (
+  id         VARCHAR(24)  NOT NULL PRIMARY KEY,
+  floor      TINYINT UNSIGNED NOT NULL,
+  position   INT          NOT NULL DEFAULT 0,
+  mime       VARCHAR(32)  NOT NULL,
+  data       LONGBLOB     NOT NULL,
+  size       INT UNSIGNED NOT NULL,
+  created_at BIGINT       NOT NULL,
+  updated_at BIGINT       NOT NULL,
+  KEY idx_map_floor_position (floor, position, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO settings (k, v) VALUES
   ('quiz_points_per_correct', '10'),
   ('snake_points_per_score', '1'),

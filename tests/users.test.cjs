@@ -44,6 +44,7 @@ async function setup(file = 'users') {
     init: record('init', { role: 'admin' }), getUsers: record('getUsers', users), getTasks: record('getTasks', tasks),
     getLeaderboard: record('getLeaderboard', []), getSettings: record('getSettings', { station_points: 30 }),
     getEventStatus: record('getEventStatus', { active: true }), getSurvey: record('getSurvey', { questions: [] }),
+    getMapImages: record('getMapImages', { images: [], maxImages: 6 }),
     addUser: record('addUser'), updateUser: record('updateUser'), deleteUser: record('deleteUser'), exportUsers: record('exportUsers', {}),
     hideAlert() {}, showAlert: (...args) => calls.push(['alert', ...args]), showFatal: (message) => { throw new Error(message); }, logout: record('logout'),
   };
@@ -172,6 +173,6 @@ test('admin boots with no user DOM/dependencies or user API calls', async () => 
   const html = fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
   assert.match(html, /href="users.html"/);
   assert.doesNotMatch(html, /usersTableBody|addUserModal|team-form.js|print-qr.js|qrcode.min.js/);
-  assert.match(html, /admin.js\?v=18/);
+  assert.match(html, /admin.js\?v=19/);
   assert.match(fs.readFileSync(path.join(root, 'users.html'), 'utf8'), /users.js\?v=18/);
 });

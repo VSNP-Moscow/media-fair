@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Команда</title>
-  <link rel="stylesheet" href="style.css?v=8">
-  <link rel="stylesheet" href="event-theme.css?v=2">
+  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="event-theme.css?v=3">
 </head>
 <body>
   <header class="topbar"><div class="container">
@@ -23,13 +23,25 @@
       </section>
       <section class="card accent-participant"><h3>Баллы команды</h3><div id="myPoints" style="font-size:2.6rem;font-weight:800;color:var(--dashboard);">0</div><p class="small">Начисляются волонтёром после прохождения станции. Повторное начисление за тот же этап невозможно.</p></section>
       <section class="card accent-participant" style="grid-column:1/-1;"><h3>Этапы ярмарки</h3><p id="stageSummary" class="small" aria-live="polite">Загружаем этапы…</p><div id="stageList" class="survey-list"></div></section>
-      <section class="card accent-participant" style="grid-column:1/-1;"><h3>Карта станций</h3><p class="small">Организаторы добавят карту позже. Пока ориентируйтесь по названиям этапов и указателям на площадке.</p></section>
+      <section class="card accent-participant map-card" id="mapCard" style="grid-column:1/-1;">
+        <h3>Карта станций</h3>
+        <p class="small" id="mapHint">Загружаем карту…</p>
+        <div class="map-floor-tabs" id="mapFloors" role="tablist" aria-label="Этажи карты" hidden></div>
+        <div class="map-gallery" id="mapGallery" hidden></div>
+      </section>
       <section class="card accent-participant" id="surveyCard" style="grid-column:1/-1;display:none;">
         <h3>Опрос о медиацентре</h3><p id="surveyIntro" class="small" style="margin-bottom:14px;">Ответьте на вопросы организаторов.</p><div id="surveyAlert" class="alert" role="alert"></div>
         <form id="surveyForm"><div id="surveyFields"></div><div class="actions"><button type="submit" id="btnSurveySubmit" class="btn-sm primary">Отправить ответы</button></div></form><div id="surveyResult"></div>
       </section>
     </div>
   </main>
-  <script src="config.js?v=11"></script><script src="api.js?v=11"></script><script src="app.js?v=11"></script><script src="qrcode.min.js?v=2"></script><script src="print-qr.js?v=12"></script><script src="participant.js?v=16"></script>
+  <div class="map-lightbox" id="mapLightbox" role="dialog" aria-modal="true" aria-label="Просмотр карты" hidden>
+    <button type="button" class="map-lightbox-close" id="mapLightboxClose" aria-label="Закрыть карту">✕</button>
+    <figure class="map-lightbox-figure">
+      <img id="mapLightboxImage" alt="">
+      <figcaption id="mapLightboxCaption"></figcaption>
+    </figure>
+  </div>
+  <script src="config.js?v=11"></script><script src="api.js?v=18"></script><script src="app.js?v=18"></script><script src="qrcode.min.js?v=2"></script><script src="print-qr.js?v=12"></script><script src="participant.js?v=17"></script>
 </body>
 </html>

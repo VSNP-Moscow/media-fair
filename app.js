@@ -303,6 +303,27 @@ async function exportUsers() {
   return window.MF_API.requestBlob('/users/export.xlsx');
 }
 
+/* ---------- карта станций ---------- */
+async function getMapImages() {
+  return window.MF_API.request('/map');
+}
+
+async function getMapImageBlob(id) {
+  return window.MF_API.requestBlob('/map/images/' + encodeURIComponent(id), { accept: 'image/*' });
+}
+
+async function uploadMapImage(payload) {
+  return (await window.MF_API.request('/map', { method: 'POST', body: payload })).image;
+}
+
+async function updateMapImage(id, payload) {
+  return (await window.MF_API.request('/map/' + encodeURIComponent(id), { method: 'PATCH', body: payload })).image;
+}
+
+async function deleteMapImage(id) {
+  await window.MF_API.request('/map/' + encodeURIComponent(id), { method: 'DELETE' });
+}
+
 /* ---------- настройки ---------- */
 async function getSettings() {
   return (await window.MF_API.request('/settings')).settings;
@@ -360,6 +381,12 @@ window.__MF = {
   deleteSurveyQuestion: deleteSurveyQuestion,
 
   exportUsers: exportUsers,
+
+  getMapImages: getMapImages,
+  getMapImageBlob: getMapImageBlob,
+  uploadMapImage: uploadMapImage,
+  updateMapImage: updateMapImage,
+  deleteMapImage: deleteMapImage,
 
   getSettings: getSettings,
   saveSettings: saveSettings,

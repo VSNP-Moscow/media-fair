@@ -174,6 +174,20 @@
     $('setStationPoints').value = settings.station_points;
   }
 
+  /* ---------- карта ---------- */
+  async function loadMapSummary() {
+    const data = await MF.getMapImages();
+    const images = data.images || [];
+    const floors = Array.from(new Set(images.map((image) => image.floor))).sort();
+
+    if (images.length === 0) {
+      $('mapAdminSummary').textContent = 'Карта пока не добавлена. Загрузите до 6 изображений.';
+    } else {
+      $('mapAdminSummary').textContent = 'Фото: ' + images.length + ' из ' + (data.maxImages || 6) +
+        ' · этажи: ' + floors.join(', ') + '.';
+    }
+  }
+
   /* ---------- модалка задания ---------- */
   function openTaskModal(task) {
     editingTaskId = task ? task.id : null;
@@ -211,7 +225,7 @@
 
     $('btnRefresh').addEventListener('click', async () => {
       try {
-        await Promise.all([loadTasks(), loadSettings(), loadLeaderboard(), loadEvent(), loadSurvey()]);
+        await Promise.all([loadTasks(), loadSettings(), loadLeaderboard(), loadEvent(), loadSurvey(), loadMapSummary()]);
         MF.showAlert('settingsAlert', 'Данные обновлены.', 'ok');
       } catch (err) {
         MF.showAlert('settingsAlert', err.message);
@@ -423,7 +437,7 @@
 
     bindEvents();
     try {
-      await Promise.all([loadTasks(), loadSettings(), loadLeaderboard(), loadEvent()]);
+      await Promise.all([loadTasks(), loadSettings(), loadLeaderboard(), loadEvent(), loadMapSummary()]);
     } catch (err) {
       MF.showFatal(err.message);
       return;
@@ -438,7 +452,7 @@
       if (refreshing || document.querySelector('.modal-overlay.open')) return;
       refreshing = true;
       try {
-        const results = await Promise.allSettled([loadLeaderboard(), loadSurvey(), loadEvent()]);
+        const results = await Promise.allSettled([loadLeaderboard(), loadSurvey(), loadEvent(), loadMapSummary()]);
         results.forEach((result) => {
           if (result.status === 'rejected') console.warn('Не удалось обновить данные администратора:', result.reason);
         });
