@@ -260,7 +260,7 @@ body:has(.login-page), body:has(.login-container) { background: var(--color-pape
 }
 .login-header p { color: var(--color-night-muted); font-size: .94rem; max-width: 34ch; line-height: 1.75; }
 .login-header::after {
-  content: "День народного\aединства\a\a6 ноября 2026";
+  content: "День народного\a единства\a\a 6 ноября 2026";
   white-space: pre-line;
   width: 100%;
   margin-top: auto;
