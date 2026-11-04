@@ -19,6 +19,7 @@
     doc.getElementById('code').textContent = user.qr;
     new window.QRCode(doc.getElementById('qr'), { text: user.qr, width: 300, height: 300, correctLevel: window.QRCode.CorrectLevel.H });
     setTimeout(function () {
+      if (!frame.isConnected || !frame.contentWindow) return;
       frame.contentWindow.focus();
       frame.contentWindow.print();
       setTimeout(function () { frame.remove(); }, 60000);
