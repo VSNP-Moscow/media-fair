@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — вход</title>
   <link rel="stylesheet" href="style.css?v=8">
-  <link rel="stylesheet" href="event-theme.css?v=2">
+  <link rel="stylesheet" href="event-theme.css?v=3">
 </head>
 <body>
   <div class="login-page">
@@ -13,36 +13,12 @@
       <div class="login-header">
         <div class="mark">🎪</div>
         <h1>Медиаярмарка</h1>
-        <p id="loginSubtitle">Войдите под своей ролью: администратор, участник или волонтёр.</p>
+        <p id="loginSubtitle">Введите логин и пароль для входа.</p>
       </div>
 
       <div id="loginAlert" class="alert"></div>
 
       <form id="loginForm">
-        <div class="role-grid">
-          <div class="role-card selected" data-role="admin">
-            <div class="icon admin">👑</div>
-            <div class="info">
-              <div class="label">Администратор</div>
-              <div class="desc">Создаёт пользователей и задания</div>
-            </div>
-          </div>
-          <div class="role-card" data-role="participant">
-            <div class="icon participant">🎫</div>
-            <div class="info">
-              <div class="label">Участник</div>
-              <div class="desc">QR-код команды, станции и опросник</div>
-            </div>
-          </div>
-          <div class="role-card" data-role="volunteer">
-            <div class="icon volunteer">📱</div>
-            <div class="info">
-              <div class="label">Волонтёр</div>
-              <div class="desc">Сканирует QR и начислит баллы</div>
-            </div>
-          </div>
-        </div>
-
         <div class="form-group">
           <label for="loginUsername">Логин</label>
           <input id="loginUsername" type="text" placeholder="Логин" autocomplete="username" required>
@@ -104,7 +80,6 @@
       const createAdminForm = $('createAdminForm');
       const loginSubtitle = $('loginSubtitle');
 
-      let selectedRole = 'admin';
       let registrationAvailable = false;
 
       const showRegisterBtn = $('btnShowRegister');
@@ -126,16 +101,6 @@
         alertEl.className = 'alert ' + (type === 'ok' ? 'ok' : '');
         alertEl.style.display = 'block';
       }
-
-      document.querySelectorAll('.role-card').forEach((card) => {
-        card.addEventListener('click', () => {
-          document.querySelectorAll('.role-card').forEach((c) => c.classList.remove('selected'));
-          card.classList.add('selected');
-          selectedRole = card.dataset.role;
-          loginSubtitle.textContent = 'Вход как ' + (window.__MF.ROLE_LABELS[selectedRole] || selectedRole).toLowerCase() + ': введите логин и пароль.';
-          usernameInput.focus();
-        });
-      });
 
       showRegisterBtn.addEventListener('click', () => {
         form.style.display = 'none';
@@ -208,10 +173,6 @@
         alertEl.style.display = 'none';
         try {
           const user = await window.__MF.login(usernameInput.value.trim(), passwordInput.value);
-          if (user.role !== selectedRole) {
-            window.__MF.logout();
-            throw new Error('Выбранная роль не совпадает с учётной записью («' + window.__MF.ROLE_LABELS[user.role] + '»).');
-          }
           window.location.href = window.__MF.ROLE_PAGES[user.role] || 'index.html';
         } catch (err) {
           showError(err.message);

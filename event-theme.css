@@ -260,7 +260,7 @@ body:has(.login-page), body:has(.login-container) { background: var(--color-pape
 }
 .login-header p { color: var(--color-night-muted); font-size: .94rem; max-width: 34ch; line-height: 1.75; }
 .login-header::after {
-  content: "День народного\a единства\a\a 6 ноября 2026";
+  content: none;
   white-space: pre-line;
   width: 100%;
   margin-top: auto;
@@ -372,7 +372,7 @@ body:has(#autoRefresh) .stat-line b { color: var(--text); }
   .login-header .mark { display: none; }
   .login-header h1 { font-size: clamp(2.1rem, 7.6vw, 2.85rem); margin-bottom: 14px; }
   .login-header p { max-width: none; font-size: .86rem; }
-  .login-header::after { content: "День народного единства · 6 ноября 2026"; padding-top: 22px; padding-bottom: 14px; margin-top: 0; font-family: var(--font-label); font-size: .78rem; line-height: 1.6; letter-spacing: 0; }
+  .login-header::after { content: none; padding-top: 22px; padding-bottom: 14px; margin-top: 0; font-family: var(--font-label); font-size: .78rem; line-height: 1.6; letter-spacing: 0; }
   .login-card > :not(.login-header) { grid-column: 1; }
   #loginForm { padding: 26px 28px; }
   #loginAlert { margin: 20px 28px 0; }
