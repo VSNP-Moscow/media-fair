@@ -378,6 +378,14 @@ body.admin-page { height: auto; min-height: 100vh; }
 .admin-page .page-header > button { flex: 0 1 auto; }
 .admin-page .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 24px; }
 .admin-page .grid-2 > .card:nth-child(-n+4) { grid-column: 1 / -1; }
+.users-page .grid-2 { grid-template-columns: minmax(0, 1fr); }
+.users-page .grid-2 > .users-card { grid-column: 1 / -1; width: 100%; }
+.users-page .users-filters { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; }
+.users-page .users-filters .form-group { flex: 1 1 200px; margin-bottom: 0; }
+.users-page .users-filters .users-search-field { flex: 3 1 300px; }
+.users-page .users-filters > button { flex: 0 1 auto; }
+.users-page .page-header > .actions { flex: 0 1 auto; }
+.users-page a.btn-sm { display: inline-flex; align-items: center; text-decoration: none; }
 .admin-page .card { min-width: 0; padding: 24px; }
 .admin-page .card > div:first-child { flex-wrap: wrap; gap: 12px; }
 .admin-page .card h3 { line-height: 1.4; }

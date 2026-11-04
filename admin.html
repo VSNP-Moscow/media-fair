@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Медиаярмарка — Администратор</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <link rel="stylesheet" href="event-theme.css?v=2">
 </head>
 <body class="admin-page">
@@ -74,21 +74,9 @@
 
       <!-- Пользователи -->
       <div class="card accent-admin">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;">
-          <h3>👥 Пользователи</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn-sm" id="btnExportUsers">⬇ Excel</button>
-            <button class="btn-sm primary" id="btnOpenAddUser">+ Добавить</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Логин</th><th>Роль</th><th>Команда</th><th>Состав команды</th><th>QR-код</th><th>Очков</th><th>Действия</th></tr>
-            </thead>
-            <tbody id="usersTableBody"></tbody>
-          </table>
-        </div>
+        <h3>👥 Пользователи</h3>
+        <p class="small">Учётные записи, составы команд, станции волонтёров и выгрузка Excel — на отдельной странице.</p>
+        <a class="btn-sm" href="users.html" style="display:inline-flex;align-items:center;margin-top:12px;text-decoration:none;">Управление пользователями →</a>
       </div>
 
       <!-- Задания -->
@@ -128,39 +116,6 @@
         <h3>🏆 Табло команд (кратко)</h3>
         <div class="leaderboard" id="adminLeaderboard"></div>
         <div class="refresh-hint">Полноэкранное табло: <a href="dashboard.html" target="_blank" style="color:var(--primary);font-weight:700;text-decoration:none;">открыть в новом окне ↗</a></div>
-      </div>
-    </div>
-
-    <!-- Модалка пользователя -->
-    <div class="modal-overlay" id="addUserModal">
-      <div class="modal">
-        <button type="button" class="close" id="closeAddUser" aria-label="Закрыть окно пользователя" style="background:none;border:0;cursor:pointer;">✕</button>
-        <h3 id="modalUserTitle">Новый пользователь</h3>
-        <div id="addUserAlert" class="alert"></div>
-        <form id="addUserForm">
-          <div class="form-group"><label for="auUsername">Логин</label><input id="auUsername" type="text" minlength="3" maxlength="32" required autocomplete="off"></div>
-          <div class="form-group">
-            <label for="auPassword">Пароль</label>
-            <input id="auPassword" type="password" minlength="6" maxlength="72" autocomplete="new-password">
-            <div class="small" id="passwordHint" style="display:none;">Оставьте пустым, чтобы не менять пароль.</div>
-          </div>
-          <div class="form-group"><label for="auRole">Роль</label><select id="auRole">
-            <option value="participant">Участник</option>
-            <option value="volunteer">Волонтёр</option>
-            <option value="admin">Администратор</option>
-          </select></div>
-          <div class="form-group" id="auStationGroup" hidden>
-            <label for="auStation">Станция волонтёра</label>
-            <select id="auStation" disabled aria-describedby="auStationHint"></select>
-            <div class="small" id="auStationHint" role="status" style="margin-top:6px;"></div>
-          </div>
-          <div class="form-group"><label for="auTeam">Название команды</label><input id="auTeam" type="text" maxlength="120" placeholder="например, Команда «Медиа»"></div>
-          <div id="auMembers" role="group" aria-label="Состав команды"></div>
-          <div class="actions" style="margin-top:14px;">
-            <button type="button" class="btn-sm" id="btnCancelAddUser">Отмена</button>
-            <button type="submit" class="btn-sm primary">Сохранить</button>
-          </div>
-        </form>
       </div>
     </div>
 
@@ -221,9 +176,6 @@
   <script src="config.js?v=11"></script>
   <script src="api.js?v=17"></script>
   <script src="app.js?v=17"></script>
-  <script src="team-form.js?v=11"></script>
-  <script src="qrcode.min.js?v=11"></script>
-  <script src="print-qr.js?v=12"></script>
-  <script src="admin.js?v=17"></script>
+  <script src="admin.js?v=18"></script>
 </body>
 </html>

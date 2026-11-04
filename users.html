@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Медиаярмарка — Пользователи</title>
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="event-theme.css?v=2">
+</head>
+<body class="admin-page users-page">
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">
+        <div class="mark">👑</div>
+        <span>Медиаярмарка <span style="font-weight:500;font-size:0.9rem;color:var(--text-muted);">· Пользователи</span></span>
+      </div>
+      <div class="user-info">
+        <span class="badge admin" id="headerRole">Администратор</span>
+        <span id="headerUser" style="color:var(--text-muted);font-size:0.9rem;"></span>
+        <button class="btn-logout" id="btnLogout">Выйти</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="container" style="padding-top:26px;padding-bottom:40px;">
+    <div class="page-header">
+      <div>
+        <h2>Пользователи</h2>
+        <div class="subtitle">Управление учётными записями, составами команд и станциями волонтёров.</div>
+      </div>
+      <div class="actions" style="margin-top:0;">
+        <a class="btn-sm" href="admin.html">← Панель администратора</a>
+        <button class="btn-sm primary" id="btnRefresh">⟳ Обновить</button>
+      </div>
+    </div>
+
+    <div id="usersAlert" class="alert" role="status"></div>
+    <div class="grid grid-2">
+      <!-- Пользователи -->
+      <div class="card accent-admin users-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap;">
+          <h3>👥 Пользователи</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-sm" id="btnExportUsers">⬇ Excel — все пользователи</button>
+            <button class="btn-sm primary" id="btnOpenAddUser">+ Добавить</button>
+          </div>
+        </div>
+        <div class="users-filters">
+          <div class="form-group users-search-field">
+            <label for="usersSearch">Поиск пользователей</label>
+            <input id="usersSearch" type="search" placeholder="Логин, команда, участник, класс, станция, роль или QR" aria-controls="usersTableBody">
+          </div>
+          <div class="form-group">
+            <label for="usersRoleFilter">Роль пользователя</label>
+            <select id="usersRoleFilter" aria-controls="usersTableBody">
+              <option value="">Все роли</option>
+              <option value="participant">Участник</option>
+              <option value="volunteer">Волонтёр</option>
+              <option value="admin">Администратор</option>
+            </select>
+          </div>
+          <button type="button" class="btn-sm" id="btnClearSearch" disabled>Очистить поиск</button>
+        </div>
+        <div id="usersCount" class="small" role="status" aria-live="polite" style="margin-bottom:12px;"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Логин</th><th>Роль</th><th>Команда</th><th>Состав команды</th><th>QR-код</th><th>Очков</th><th>Действия</th></tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Модалка пользователя -->
+    <div class="modal-overlay" id="addUserModal">
+      <div class="modal">
+        <button type="button" class="close" id="closeAddUser" aria-label="Закрыть окно пользователя" style="background:none;border:0;cursor:pointer;">✕</button>
+        <h3 id="modalUserTitle">Новый пользователь</h3>
+        <div id="addUserAlert" class="alert"></div>
+        <form id="addUserForm">
+          <div class="form-group"><label for="auUsername">Логин</label><input id="auUsername" type="text" minlength="3" maxlength="32" required autocomplete="off"></div>
+          <div class="form-group">
+            <label for="auPassword">Пароль</label>
+            <input id="auPassword" type="password" minlength="6" maxlength="72" autocomplete="new-password">
+            <div class="small" id="passwordHint" style="display:none;">Оставьте пустым, чтобы не менять пароль.</div>
+          </div>
+          <div class="form-group"><label for="auRole">Роль</label><select id="auRole">
+            <option value="participant">Участник</option>
+            <option value="volunteer">Волонтёр</option>
+            <option value="admin">Администратор</option>
+          </select></div>
+          <div class="form-group" id="auStationGroup" hidden>
+            <label for="auStation">Станция волонтёра</label>
+            <select id="auStation" disabled aria-describedby="auStationHint"></select>
+            <div class="small" id="auStationHint" role="status" style="margin-top:6px;"></div>
+          </div>
+          <div class="form-group"><label for="auTeam">Название команды</label><input id="auTeam" type="text" maxlength="120" placeholder="например, Команда «Медиа»"></div>
+          <div id="auMembers" role="group" aria-label="Состав команды"></div>
+          <div class="actions" style="margin-top:14px;">
+            <button type="button" class="btn-sm" id="btnCancelAddUser">Отмена</button>
+            <button type="submit" class="btn-sm primary">Сохранить</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="config.js?v=11"></script>
+  <script src="api.js?v=17"></script>
+  <script src="app.js?v=17"></script>
+  <script src="team-form.js?v=11"></script>
+  <script src="qrcode.min.js?v=11"></script>
+  <script src="print-qr.js?v=12"></script>
+  <script src="users.js?v=18"></script>
+</body>
+</html>
